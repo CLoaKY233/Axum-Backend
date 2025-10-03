@@ -98,21 +98,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anubrahman_backend"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "axum",
- "chrono",
- "dotenvy",
- "futures",
- "serde",
- "serde_json",
- "surrealdb",
- "tokio",
-]
-
-[[package]]
 name = "any_ascii"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -378,6 +363,21 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum_backend"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "chrono",
+ "dotenvy",
+ "futures",
+ "serde",
+ "serde_json",
+ "surrealdb",
+ "tokio",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 use crate::{
     dbs::models::Database,
-    svr::{config::state::AppState, health::models::*},
+    sys::{config::state::AppState, health::models::*},
 };
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use futures::future::join_all;

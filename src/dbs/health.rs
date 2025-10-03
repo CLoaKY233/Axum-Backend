@@ -1,5 +1,5 @@
 use super::models::Database;
-use crate::svr::{
+use crate::sys::{
     health::models::HealthCheck,
     health::models::{ComponentHealth, HealthStatus},
 };

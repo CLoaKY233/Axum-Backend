@@ -1,7 +1,7 @@
-use anubrahman_backend::{
+use axum_backend::{
     AppError,
     dbs::models::DbConfig,
-    svr::{config::state::AppState, health::aggregator::aggregate_health},
+    sys::{config::state::AppState, health::aggregator::aggregate_health},
 };
 use axum::{Router, routing::get};
 use std::sync::Arc;
