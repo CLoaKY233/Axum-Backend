@@ -39,3 +39,9 @@ impl IntoResponse for DatabaseError {
         (status, body).into_response()
     }
 }
+
+impl From<surrealdb::Error> for DatabaseError {
+    fn from(err: surrealdb::Error) -> Self {
+        Self::QueryError(err.to_string())
+    }
+}
