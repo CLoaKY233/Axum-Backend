@@ -1,12 +1,14 @@
 [package]
-name = "anubrahman_backend"
+name = "axum_backend"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+async-trait = "0.1.89"
 axum = "0.8.6"
 chrono = "0.4.42"
 dotenvy = "0.15.7"
+futures = "0.3.31"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 surrealdb = "2.3.10"

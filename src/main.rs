@@ -1,11 +1,12 @@
-use anubrahman_backend::{
-    AppError,
-    dbs::connector::DbConfig,
-    svr::{health::aggregate_health, state::AppState},
-};
-
 use axum::{Router, routing::get};
-use dotenvy;
+use axum_backend::{
+    AppError,
+    dbs::models::DbConfig,
+    sys::{
+        config::state::AppState,
+        health::{aggregator::aggregate_health, components::create_health_checkers},
+    },
+};
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
 
@@ -23,8 +24,10 @@ async fn main() -> Result<(), AppError> {
 
     println!("✅ Database connected!");
 
+    let health_checkers = Arc::new(create_health_checkers(connection.clone()));
     let state = Arc::new(AppState {
         db_connection: connection,
+        health_checkers,
     });
 
     let app = Router::new()

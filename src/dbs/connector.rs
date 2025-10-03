@@ -1,45 +1,27 @@
 use super::error::DatabaseError;
+use super::models::{DbConfig, DbConnection};
 use std::sync::Arc;
-use surrealdb::Surreal;
-use surrealdb::engine::any::Any;
 use surrealdb::opt::auth::Namespace;
 
-pub type DbConnection = Arc<Surreal<Any>>;
-
-pub async fn establish_connection(
-    endpoint: &str,
-    namespace: &str,
-    database: &str,
-    username: &str,
-    password: &str,
-) -> Result<DbConnection, DatabaseError> {
-    let db = surrealdb::engine::any::connect(endpoint)
+pub async fn establish_connection(config: &DbConfig) -> Result<DbConnection, DatabaseError> {
+    let db = surrealdb::engine::any::connect(&config.endpoint)
         .await
         .map_err(|e| DatabaseError::ConnectionError(e.to_string()))?;
 
-    db.use_ns(namespace)
-        .use_db(database)
+    db.use_ns(&config.namespace)
+        .use_db(&config.database)
         .await
         .map_err(|e| DatabaseError::ConnectionError(e.to_string()))?;
 
     db.signin(Namespace {
-        namespace: namespace.into(),
-        username: username.into(),
-        password: password.into(),
+        namespace: &config.namespace,
+        username: &config.username,
+        password: &config.password,
     })
     .await
     .map_err(|e| DatabaseError::AuthenticationError(e.to_string()))?;
 
     Ok(Arc::new(db))
-}
-
-#[derive(Clone)]
-pub struct DbConfig {
-    pub endpoint: String,
-    pub namespace: String,
-    pub database: String,
-    pub username: String,
-    pub password: String,
 }
 
 impl DbConfig {
@@ -63,13 +45,6 @@ impl DbConfig {
     }
 
     pub async fn connect(&self) -> Result<DbConnection, DatabaseError> {
-        establish_connection(
-            &self.endpoint,
-            &self.namespace,
-            &self.database,
-            &self.username,
-            &self.password,
-        )
-        .await
+        establish_connection(self).await
     }
 }
