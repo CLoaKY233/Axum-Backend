@@ -1,4 +1,4 @@
-use crate::dbs::connector::DbConnection;
+use crate::dbs::models::DbConnection;
 
 #[derive(Clone)]
 pub struct AppState {

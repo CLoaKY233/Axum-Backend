@@ -1,7 +1,7 @@
 use super::models::Database;
 use crate::svr::{
-    health::HealthCheck,
-    models::{ComponentHealth, HealthStatus},
+    health::models::HealthCheck,
+    health::models::{ComponentHealth, HealthStatus},
 };
 use tokio::time::{Duration, Instant, timeout};
 

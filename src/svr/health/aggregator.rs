@@ -1,16 +1,10 @@
 use crate::{
     dbs::models::Database,
-    svr::{models::*, state::AppState},
+    svr::{config::state::AppState, health::models::*},
 };
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use futures::future::join_all;
 use std::sync::Arc;
-
-#[async_trait::async_trait]
-pub trait HealthCheck: Send + Sync {
-    /// Performs the health check and returns component health status
-    async fn check(&self) -> ComponentHealth;
-}
 
 pub async fn aggregate_health(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let components: Vec<Box<dyn HealthCheck>> = vec![Box::new(Database {

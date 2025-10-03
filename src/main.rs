@@ -1,11 +1,9 @@
 use anubrahman_backend::{
     AppError,
-    dbs::connector::DbConfig,
-    svr::{health::aggregate_health, state::AppState},
+    dbs::models::DbConfig,
+    svr::{config::state::AppState, health::aggregator::aggregate_health},
 };
-
 use axum::{Router, routing::get};
-use dotenvy;
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
 
