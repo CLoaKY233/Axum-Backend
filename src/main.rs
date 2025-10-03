@@ -1,35 +1,20 @@
 use anubrahman_backend::{
-    dbs::connector::{DbConfig, DbConnection},
-    err::error::AppError,
+    AppError,
+    dbs::connector::DbConfig,
+    svr::{health::aggregate_health, state::AppState},
 };
-use axum::{
-    Router,
-    extract::{Json, State},
-    routing::get,
-};
+
+use axum::{Router, routing::get};
 use dotenvy;
-use serde::Serialize;
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
 
-#[derive(Clone)]
-struct AppState {
-    db_connection: DbConnection,
-}
-
-#[derive(Serialize)]
-struct HealthResponse {
-    status: String,
-    database: String,
-}
-
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
-    // Changed to AppError!
     dotenvy::dotenv().ok();
 
     println!("⏳ Loading configuration...");
-    let config = DbConfig::from_env()?; // Auto-converts to AppError!
+    let config = DbConfig::from_env()?;
 
     println!("⏳ Connecting to database...");
     let connection = timeout(Duration::from_secs(10), config.connect())
@@ -44,34 +29,18 @@ async fn main() -> Result<(), AppError> {
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/health", get(health))
+        .route("/health", get(aggregate_health))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?; // Auto-converts io::Error to AppError!
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
     println!("🚀 Server running on http://localhost:3000");
 
-    axum::serve(listener, app).await?; // Auto-converts io::Error to AppError!
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
 
-// ==================================
-
 async fn root() -> &'static str {
     "Welcome to Anubrahman"
-}
-
-async fn health(State(state): State<Arc<AppState>>) -> Result<Json<HealthResponse>, AppError> {
-    timeout(
-        Duration::from_secs(5),
-        state.db_connection.query("return true;"),
-    )
-    .await
-    .map_err(|_| AppError::ServerError("Health check timeout".to_string()))??;
-
-    Ok(Json(HealthResponse {
-        status: "healthy".to_string(),
-        database: "connected".to_string(),
-    }))
 }
