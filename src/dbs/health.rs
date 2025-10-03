@@ -9,25 +9,26 @@ use tokio::time::{Duration, Instant, timeout};
 impl HealthCheck for Database {
     async fn check(&self) -> ComponentHealth {
         let start = Instant::now();
-        match timeout(Duration::from_secs(5), self.db.query("RETURN true;")).await {
-            Ok(Ok(_)) => {
-                let elapsed = start.elapsed();
-                ComponentHealth {
-                    name: "Database".to_string(),
-                    status: HealthStatus::Healthy,
-                    message: Some(format!("Response time: {}ms", elapsed.as_millis())),
+        let (status, message) =
+            match timeout(Duration::from_secs(5), self.db.query("RETURN true;")).await {
+                Ok(Ok(_)) => {
+                    let elapsed = start.elapsed();
+                    (
+                        HealthStatus::Healthy,
+                        Some(format!("Response time: {}ms", elapsed.as_millis())),
+                    )
                 }
-            }
-            Ok(Err(e)) => ComponentHealth {
-                name: "Database".to_string(),
-                status: HealthStatus::Unhealthy,
-                message: Some(format!("Query error: {}", e)),
-            },
-            Err(_) => ComponentHealth {
-                name: "Database".to_string(),
-                status: HealthStatus::Unhealthy,
-                message: Some("Health check timeout after 5 seconds".to_string()),
-            },
+                Ok(Err(e)) => (HealthStatus::Unhealthy, Some(format!("Query error: {}", e))),
+                Err(_) => (
+                    HealthStatus::Unhealthy,
+                    Some("Health check timeout after 5 seconds".to_string()),
+                ),
+            };
+
+        ComponentHealth {
+            name: "Database".to_string(),
+            status,
+            message,
         }
     }
 }
