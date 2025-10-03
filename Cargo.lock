@@ -101,9 +101,11 @@ dependencies = [
 name = "anubrahman_backend"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "chrono",
  "dotenvy",
+ "futures",
  "serde",
  "serde_json",
  "surrealdb",

@@ -1,64 +1,50 @@
 use crate::{
-    dbs::health::check_database_health,
+    dbs::models::Database,
     svr::{models::*, state::AppState},
 };
-use axum::{
-    extract::{Json, State},
-    http::StatusCode,
-    response::IntoResponse,
-};
-use std::{collections::HashMap, sync::Arc};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
+use futures::future::join_all;
+use std::sync::Arc;
+
+#[async_trait::async_trait]
+pub trait HealthCheck: Send + Sync {
+    /// Performs the health check and returns component health status
+    async fn check(&self) -> ComponentHealth;
+}
 
 pub async fn aggregate_health(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let mut components = HashMap::new();
-    let mut overall_healthy = true;
+    let components: Vec<Box<dyn HealthCheck>> = vec![Box::new(Database {
+        db: state.db_connection.clone(),
+    })];
 
-    // Check database health
-    match check_database_health(&state.db_connection).await {
-        Ok(msg) => {
-            components.insert(
-                "database".to_string(),
-                ComponentHealth {
-                    status: "healthy".to_string(),
-                    message: Some(msg),
-                },
-            );
-        }
-        Err(e) => {
-            overall_healthy = false;
-            components.insert(
-                "database".to_string(),
-                ComponentHealth {
-                    status: "unhealthy".to_string(),
-                    message: Some(e.to_string()),
-                },
-            );
-        }
-    }
+    let check_futures = components.iter().map(|checker| checker.check());
 
-    // Add more component checks here as you build them:
-    // - Cache health
-    // - External API health
-    // - Auth service health
+    let results: Vec<ComponentHealth> = join_all(check_futures).await;
 
-    // Determine overall status
-    let status = if overall_healthy {
-        HealthStatus::Healthy
-    } else {
+    let overall_status = if results
+        .iter()
+        .any(|r| matches!(r.status, HealthStatus::Unhealthy))
+    {
         HealthStatus::Unhealthy
+    } else if results
+        .iter()
+        .any(|r| matches!(r.status, HealthStatus::Degraded))
+    {
+        HealthStatus::Degraded
+    } else {
+        HealthStatus::Healthy
     };
 
     let response = SystemHealthResponse {
-        status,
-        components,
+        status: overall_status.clone(),
+        components: results,
         timestamp: chrono::Utc::now().timestamp(),
     };
 
-    // Return appropriate HTTP status code
-    let http_status = if overall_healthy {
-        StatusCode::OK
-    } else {
-        StatusCode::SERVICE_UNAVAILABLE
+    let http_status = match overall_status {
+        HealthStatus::Healthy => StatusCode::OK,
+        HealthStatus::Degraded => StatusCode::OK, // Still serving traffic
+        HealthStatus::Unhealthy => StatusCode::SERVICE_UNAVAILABLE,
     };
 
     (http_status, Json(response))

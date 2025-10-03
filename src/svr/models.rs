@@ -1,7 +1,5 @@
 use serde::Serialize;
-use std::collections::HashMap;
-
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum HealthStatus {
     Healthy,
@@ -9,9 +7,11 @@ pub enum HealthStatus {
     Unhealthy,
 }
 
-#[derive(Serialize)]
+// Single ComponentHealth struct (removing duplicates)
+#[derive(Serialize, Debug)]
 pub struct ComponentHealth {
-    pub status: String,
+    pub name: String,
+    pub status: HealthStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
 }
@@ -19,6 +19,6 @@ pub struct ComponentHealth {
 #[derive(Serialize)]
 pub struct SystemHealthResponse {
     pub status: HealthStatus,
-    pub components: HashMap<String, ComponentHealth>,
+    pub components: Vec<ComponentHealth>, // Changed from HashMap to Vec
     pub timestamp: i64,
 }
