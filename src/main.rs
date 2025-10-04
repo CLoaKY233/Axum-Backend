@@ -21,27 +21,28 @@ async fn main() -> Result<(), AppError> {
     // Initialize logging
     log::init();
 
-    // Now we can use structured logging
-    info!("🚀 Application starting");
+    info!("Loaded environment variables from .env file");
 
-    info!("Loading database configuration");
+    info!("Application is starting");
+
+    info!("Loading database configuration from environment");
     let config = DbConfig::from_env()?;
 
     info!(
         endpoint = %config.endpoint,
         namespace = %config.namespace,
         database = %config.database,
-        "Connecting to database"
+        "Attempting to connect to the database"
     );
 
     let connection = timeout(Duration::from_secs(10), config.connect())
         .await
         .map_err(|_| {
-            error!("Database connection timeout after 10s");
+            error!("Failed to connect to the database: connection timed out after 10 seconds");
             AppError::ServerError("Database connection timeout".to_string())
         })??;
 
-    info!("✅ Database connected successfully");
+    info!("Successfully connected to the database");
 
     let health_checkers = Arc::new(create_health_checkers(connection.clone()));
     let state = Arc::new(AppState {
@@ -58,14 +59,14 @@ async fn main() -> Result<(), AppError> {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
         .map_err(|e| {
-            error!(error = %e, "Failed to bind to port 3000");
+            error!(error = %e, "Failed to bind server to port 3000");
             e
         })?;
 
-    info!("🚀 Server listening on http://0.0.0.0:3000");
+    info!("Server is listening for requests on http://0.0.0.0:3000");
 
     axum::serve(listener, app).await.map_err(|e| {
-        error!(error = %e, "Server error");
+        error!(error = %e, "The server encountered an unrecoverable error");
         e
     })?;
 
