@@ -5,24 +5,43 @@ use axum_backend::{
     sys::{
         config::state::AppState,
         health::{aggregator::aggregate_health, components::create_health_checkers},
+        log,
     },
 };
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
+use tower_http::trace::TraceLayer;
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
+    // Load environment variables
     dotenvy::dotenv().ok();
 
-    println!("⏳ Loading configuration...");
+    // Initialize logging
+    log::init();
+
+    // Now we can use structured logging
+    info!("🚀 Application starting");
+
+    info!("Loading database configuration");
     let config = DbConfig::from_env()?;
 
-    println!("⏳ Connecting to database...");
+    info!(
+        endpoint = %config.endpoint,
+        namespace = %config.namespace,
+        database = %config.database,
+        "Connecting to database"
+    );
+
     let connection = timeout(Duration::from_secs(10), config.connect())
         .await
-        .map_err(|_| AppError::ServerError("Database connection timeout".to_string()))??;
+        .map_err(|_| {
+            error!("Database connection timeout after 10s");
+            AppError::ServerError("Database connection timeout".to_string())
+        })??;
 
-    println!("✅ Database connected!");
+    info!("✅ Database connected successfully");
 
     let health_checkers = Arc::new(create_health_checkers(connection.clone()));
     let state = Arc::new(AppState {
@@ -33,13 +52,22 @@ async fn main() -> Result<(), AppError> {
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(aggregate_health))
+        .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to bind to port 3000");
+            e
+        })?;
 
-    println!("🚀 Server running on http://localhost:3000");
+    info!("🚀 Server listening on http://0.0.0.0:3000");
 
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app).await.map_err(|e| {
+        error!(error = %e, "Server error");
+        e
+    })?;
 
     Ok(())
 }
