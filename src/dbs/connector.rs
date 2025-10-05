@@ -28,19 +28,19 @@ impl DbConfig {
     pub fn from_env() -> Result<Self, DatabaseError> {
         Ok(Self {
             endpoint: std::env::var("DB_ENDPOINT")
-                .map_err(|_| DatabaseError::ConnectionError("DB_ENDPOINT not set".to_string()))?,
+                .map_err(|_| DatabaseError::ConfigError("DB_ENDPOINT not set".to_string()))?,
 
             namespace: std::env::var("DB_NAMESPACE")
-                .map_err(|_| DatabaseError::ConnectionError("DB_NAMESPACE not set".to_string()))?,
+                .map_err(|_| DatabaseError::ConfigError("DB_NAMESPACE not set".to_string()))?,
 
             database: std::env::var("DB_NAME")
-                .map_err(|_| DatabaseError::ConnectionError("DB_NAME not set".to_string()))?,
+                .map_err(|_| DatabaseError::ConfigError("DB_NAME not set".to_string()))?,
 
             username: std::env::var("DB_USERNAME")
-                .map_err(|_| DatabaseError::ConnectionError("DB_USERNAME not set".to_string()))?,
+                .map_err(|_| DatabaseError::ConfigError("DB_USERNAME not set".to_string()))?,
 
             password: std::env::var("DB_PASSWORD")
-                .map_err(|_| DatabaseError::ConnectionError("DB_PASSWORD not set".to_string()))?,
+                .map_err(|_| DatabaseError::ConfigError("DB_PASSWORD not set".to_string()))?,
         })
     }
 

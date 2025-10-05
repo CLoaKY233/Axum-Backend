@@ -16,12 +16,15 @@ use tracing::{error, info};
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
     // Load environment variables
-    dotenvy::dotenv().ok();
+    let env_loaded = dotenvy::dotenv().is_ok();
 
     // Initialize logging
     log::init();
-
-    info!("Loaded environment variables from .env file");
+    if env_loaded {
+        info!("Loaded .env file");
+    } else {
+        error!("No .env file found");
+    }
 
     info!("Application is starting");
 

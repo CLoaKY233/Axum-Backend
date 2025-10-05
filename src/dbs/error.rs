@@ -12,6 +12,7 @@ pub enum DatabaseError {
     QueryError(String),
     AuthenticationError(String),
     NotFound(String),
+    ConfigError(String),
 }
 
 impl fmt::Display for DatabaseError {
@@ -20,7 +21,9 @@ impl fmt::Display for DatabaseError {
             Self::ConnectionError(msg) => write!(f, "Connection error: {}", msg),
             Self::QueryError(msg) => write!(f, "Query error: {}", msg),
             Self::AuthenticationError(msg) => write!(f, "Authentication error: {}", msg),
+
             Self::NotFound(msg) => write!(f, "Not found: {}", msg),
+            Self::ConfigError(msg) => write!(f, "Configuration error: {}", msg),
         }
     }
 }
@@ -34,6 +37,7 @@ impl IntoResponse for DatabaseError {
             Self::QueryError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             Self::AuthenticationError(msg) => (StatusCode::UNAUTHORIZED, msg),
             Self::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            Self::ConfigError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
         let body = Json(json!({"error":error_message}));
         (status, body).into_response()
