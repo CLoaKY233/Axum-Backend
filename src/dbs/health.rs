@@ -15,7 +15,10 @@ impl HealthCheck for Database {
             match timeout(Duration::from_secs(5), self.db.query("RETURN true;")).await {
                 Ok(Ok(_)) => {
                     let elapsed = start.elapsed();
-                    debug!(latency_ms = elapsed.as_millis(), "Database health check successful");
+                    debug!(
+                        latency_ms = elapsed.as_millis(),
+                        "Database health check successful"
+                    );
                     (
                         HealthStatus::Healthy,
                         Some(format!("Response time: {}ms", elapsed.as_millis())),

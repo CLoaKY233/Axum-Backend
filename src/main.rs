@@ -2,10 +2,10 @@ use axum::{Router, routing::get};
 use axum_backend::{
     AppError,
     dbs::models::DbConfig,
+    init_tracing,
     sys::{
         config::state::AppState,
         health::{aggregator::aggregate_health, components::create_health_checkers},
-        log,
     },
 };
 use std::sync::Arc;
@@ -19,13 +19,14 @@ async fn main() -> Result<(), AppError> {
     let env_loaded = dotenvy::dotenv().is_ok();
 
     // Initialize logging
-    log::init();
+    init_tracing();
+
     if env_loaded {
         info!("Loaded .env file");
     } else {
         error!("No .env file found");
     }
-
+    info!(version = env!("CARGO_PKG_VERSION"), "Application");
     info!("Application is starting");
 
     info!("Loading database configuration from environment");
