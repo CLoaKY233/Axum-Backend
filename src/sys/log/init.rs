@@ -1,8 +1,10 @@
 use tracing_subscriber::{EnvFilter, fmt};
 
+const DEFAULT_LOG_FILTER: &str = "axum_backend=debug,tower_http=debug,info";
+
 pub fn init() {
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("axum_backend=debug,tower_http=debug,info"));
+        .unwrap_or_else(|_| EnvFilter::new(DEFAULT_LOG_FILTER));
 
     fmt()
         .with_env_filter(env_filter)
