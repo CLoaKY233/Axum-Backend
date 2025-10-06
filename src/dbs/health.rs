@@ -26,7 +26,7 @@ impl HealthCheck for Database {
                 }
                 Ok(Err(e)) => {
                     warn!(error = %e, "Database health check failed");
-                    (HealthStatus::Unhealthy, Some(format!("Query error: {}", e)))
+                    (HealthStatus::Unhealthy, Some(format!("Query error: {e}")))
                 }
                 Err(_) => {
                     warn!("Database health check timed out after 5 seconds");

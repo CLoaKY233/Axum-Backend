@@ -9,13 +9,10 @@ impl LogFormat {
                 "compact" => Some(Self::Compact),
                 _ => None,
             })
-            .unwrap_or_else(|| {
-                // JSON for release builds, Compact for debug builds
-                if cfg!(debug_assertions) {
-                    Self::Compact
-                } else {
-                    Self::Json
-                }
+            .unwrap_or(if cfg!(debug_assertions) {
+                Self::Compact
+            } else {
+                Self::Json
             })
     }
 }

@@ -4,6 +4,7 @@ use crate::{
 };
 
 /// Factory function to create all health check components
+#[must_use = "health checkers should be registered or used"]
 pub fn create_health_checkers(db_connection: DbConnection) -> Vec<Box<dyn HealthCheck>> {
     vec![Box::new(Database {
         db: db_connection,
