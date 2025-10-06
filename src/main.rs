@@ -2,6 +2,7 @@ use axum::{Router, routing::get};
 use axum_backend::{
     AppError,
     dbs::models::DbConfig,
+    init_tracing,
     sys::{
         config::state::AppState,
         health::{aggregator::aggregate_health, components::create_health_checkers},
@@ -9,20 +10,43 @@ use axum_backend::{
 };
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
+use tower_http::trace::TraceLayer;
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
-    dotenvy::dotenv().ok();
+    // Load environment variables
+    let env_loaded = dotenvy::dotenv().is_ok();
 
-    println!("⏳ Loading configuration...");
+    // Initialize logging
+    init_tracing();
+
+    if env_loaded {
+        info!("Loaded .env file");
+    } else {
+        error!("No .env file found");
+    }
+    info!(version = env!("CARGO_PKG_VERSION"), "Application");
+    info!("Application is starting");
+
+    info!("Loading database configuration from environment");
     let config = DbConfig::from_env()?;
 
-    println!("⏳ Connecting to database...");
+    info!(
+        endpoint = %config.endpoint,
+        namespace = %config.namespace,
+        database = %config.database,
+        "Attempting to connect to the database"
+    );
+
     let connection = timeout(Duration::from_secs(10), config.connect())
         .await
-        .map_err(|_| AppError::ServerError("Database connection timeout".to_string()))??;
+        .map_err(|_| {
+            error!("Failed to connect to the database: connection timed out after 10 seconds");
+            AppError::ServerError("Database connection timeout".to_string())
+        })??;
 
-    println!("✅ Database connected!");
+    info!("Successfully connected to the database");
 
     let health_checkers = Arc::new(create_health_checkers(connection.clone()));
     let state = Arc::new(AppState {
@@ -33,17 +57,27 @@ async fn main() -> Result<(), AppError> {
     let app = Router::new()
         .route("/", get(root))
         .route("/health", get(aggregate_health))
+        .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Failed to bind server to port 3000");
+            e
+        })?;
 
-    println!("🚀 Server running on http://localhost:3000");
+    info!("Server is listening for requests on http://0.0.0.0:3000");
 
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app).await.map_err(|e| {
+        error!(error = %e, "The server encountered an unrecoverable error");
+        e
+    })?;
 
     Ok(())
 }
 
+/// The root endpoint of the application.
 async fn root() -> &'static str {
     "Welcome to Anubrahman"
 }

@@ -20,9 +20,9 @@ pub enum AppError {
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Database(e) => write!(f, "Database error: {}", e),
-            Self::ServerError(msg) => write!(f, "Server error: {}", msg),
-            Self::BindError(msg) => write!(f, "Bind error: {}", msg),
+            Self::Database(e) => write!(f, "Database error: {e}"),
+            Self::ServerError(msg) => write!(f, "Server error: {msg}"),
+            Self::BindError(msg) => write!(f, "Bind error: {msg}"),
         }
     }
 }
@@ -72,7 +72,7 @@ impl From<std::io::Error> for AppError {
 // Automatically convert env::VarError -> AppError
 impl From<std::env::VarError> for AppError {
     fn from(err: std::env::VarError) -> Self {
-        Self::ServerError(format!("Environment variable error: {}", err))
+        Self::ServerError(format!("Environment variable error: {err}"))
     }
 }
 
