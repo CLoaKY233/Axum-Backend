@@ -1,5 +1,5 @@
 use super::models::{LogConfig, LogFormat};
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 /// Initializes the tracing subscriber for logging.
 pub fn init_tracing() {

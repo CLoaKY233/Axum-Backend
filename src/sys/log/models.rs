@@ -12,5 +12,5 @@ pub struct LogConfig {
 //error  |  Something broke, needs immediate attention  |  Database connection failed
 //warn   |  Unusual but not breaking                    |  Health check slow (>1s)
 //info   |  Important business events                   |  Server started, user created
-//debug  |  Detailed flow for debugging                 |  Function entry/exit, va riable values
+//debug  |  Detailed flow for debugging                 |  Function entry/exit, variable values
 //trace  |  EXTREMELY detailed, very noisy              |  Every database query, all HTTP headers
