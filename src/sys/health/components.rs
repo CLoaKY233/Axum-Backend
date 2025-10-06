@@ -3,7 +3,12 @@ use crate::{
     sys::health::models::HealthCheck,
 };
 
-/// Factory function to create all health check components
+/// Creates and returns a vector of all system health checkers.
+///
+/// This factory function initializes and collects all components that implement the
+/// `HealthCheck` trait, such as database connections or external service clients.
+/// Each checker is boxed and added to the vector, which can then be used by the
+/// health aggregation service.
 #[must_use = "health checkers should be registered or used"]
 pub fn create_health_checkers(db_connection: DbConnection) -> Vec<Box<dyn HealthCheck>> {
     vec![Box::new(Database {

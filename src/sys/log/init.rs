@@ -1,6 +1,7 @@
 use super::models::{LogConfig, LogFormat};
 use tracing_subscriber::{fmt, EnvFilter};
 
+/// Initializes the tracing subscriber for logging.
 pub fn init_tracing() {
     let config = LogConfig::from_env();
     let env_filter = EnvFilter::try_new(&config.filter).unwrap_or_else(|_| EnvFilter::new("info"));

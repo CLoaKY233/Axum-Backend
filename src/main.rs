@@ -77,6 +77,7 @@ async fn main() -> Result<(), AppError> {
     Ok(())
 }
 
+/// The root endpoint of the application.
 async fn root() -> &'static str {
     "Welcome to Anubrahman"
 }

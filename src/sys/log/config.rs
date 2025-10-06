@@ -1,6 +1,7 @@
 use super::models::{LogConfig, LogFormat};
 use std::env;
 impl LogFormat {
+    /// Creates a `LogFormat` from the `LOG_FORMAT` environment variable.
     pub fn from_env() -> Self {
         env::var("LOG_FORMAT")
             .ok()
@@ -18,6 +19,7 @@ impl LogFormat {
 }
 
 impl LogConfig {
+    /// Creates a `LogConfig` from environment variables.
     pub fn from_env() -> Self {
         let format = LogFormat::from_env();
 

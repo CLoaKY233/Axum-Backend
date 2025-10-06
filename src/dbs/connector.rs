@@ -4,13 +4,8 @@ use std::sync::Arc;
 use surrealdb::opt::auth::Namespace;
 
 /// Establishes a connection to the `SurrealDB` database.
-///
 /// # Errors
-///
-/// Returns `DatabaseError` if:
-/// - Connection to the database endpoint fails (`ConnectionError`)
-/// - Namespace or database selection fails (`ConnectionError`)
-/// - Authentication with provided credentials fails (`AuthenticationError`)
+/// Returns `DatabaseError::ConnectionError` or `DatabaseError::AuthenticationError` on failure.
 pub async fn establish_connection(config: &DbConfig) -> Result<DbConnection, DatabaseError> {
     let db = surrealdb::engine::any::connect(&config.endpoint)
         .await
@@ -34,15 +29,8 @@ pub async fn establish_connection(config: &DbConfig) -> Result<DbConnection, Dat
 
 impl DbConfig {
     /// Creates a database configuration from environment variables.
-    ///
     /// # Errors
-    ///
-    /// Returns `DatabaseError::ConfigError` if any required environment variable is not set:
-    /// - `DB_ENDPOINT` - Database connection endpoint
-    /// - `DB_NAMESPACE` - Database namespace
-    /// - `DB_NAME` - Database name
-    /// - `DB_USERNAME` - Authentication username
-    /// - `DB_PASSWORD` - Authentication password
+    /// Returns `DatabaseError::ConfigError` if any required environment variable is not set.
     pub fn from_env() -> Result<Self, DatabaseError> {
         Ok(Self {
             endpoint: std::env::var("DB_ENDPOINT")
@@ -62,11 +50,8 @@ impl DbConfig {
         })
     }
     /// Establishes a database connection using this configuration.
-    ///
     /// # Errors
-    ///
     /// Returns `DatabaseError` if connection establishment fails.
-    /// See [`establish_connection`] for specific error conditions.
     pub async fn connect(&self) -> Result<DbConnection, DatabaseError> {
         establish_connection(self).await
     }

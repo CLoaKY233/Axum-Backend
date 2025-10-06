@@ -8,6 +8,7 @@ use tracing::{debug, warn};
 
 #[async_trait::async_trait]
 impl HealthCheck for Database {
+    /// Performs a health check on the database.
     async fn check(&self) -> ComponentHealth {
         let start = Instant::now();
         debug!("Performing database health check");
