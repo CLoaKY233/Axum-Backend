@@ -5,7 +5,10 @@ use crate::{
         models::{DbConfig, DbConnection},
     },
     init_tracing,
-    sys::{config::state::AppState, health::components::create_health_checkers},
+    sys::{
+        config::{server::ServerConfig, state::AppState},
+        health::components::create_health_checkers,
+    },
 };
 use axum::Router;
 use std::sync::Arc;
@@ -89,6 +92,14 @@ pub async fn initialize() -> Result<
     info!(version = env!("CARGO_PKG_VERSION"), "Application");
     info!("Application is starting");
 
+    // Load server configuration
+    let server_config = ServerConfig::from_env();
+    info!(
+        host = %server_config.host,
+        port = server_config.port,
+        "Server configuration loaded"
+    );
+
     // Load database connection
     let connection = load_database().await?;
 
@@ -105,7 +116,7 @@ pub async fn initialize() -> Result<
     let router = load_router();
 
     // Load listener
-    let listener = load_listener("0.0.0.0:3000").await?;
+    let listener = load_listener(&server_config.address()).await?;
 
     Ok((router, state, listener))
 }

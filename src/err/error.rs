@@ -1,4 +1,5 @@
 use crate::dbs::error::DatabaseError;
+use crate::sys::env::EnvironmentError;
 use axum::{
     Json,
     http::StatusCode,
@@ -12,15 +13,19 @@ pub enum AppError {
     // Database Errors
     Database(DatabaseError),
 
-    // Server/IO errors
+    // Server/IO Errors
     ServerError(String),
     BindError(String),
+
+    // Environment Errors
+    Environment(EnvironmentError),
 }
 
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Database(e) => write!(f, "Database error: {e}"),
+            Self::Environment(e) => write!(f, "Environment error: {e}"),
             Self::ServerError(msg) => write!(f, "Server error: {msg}"),
             Self::BindError(msg) => write!(f, "Bind error: {msg}"),
         }
@@ -34,6 +39,15 @@ impl IntoResponse for AppError {
         match self {
             // Delegate to DatabaseError's response
             Self::Database(db_err) => db_err.into_response(),
+
+            // Environment errors at runtime (shouldn't normally happen)
+            Self::Environment(env_err) => {
+                let body = Json(json!({
+                    "error": "configuration_error",
+                    "message": env_err.to_string()
+                }));
+                (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+            }
 
             // Handle Server errors
             Self::ServerError(msg) => {
@@ -59,6 +73,13 @@ impl IntoResponse for AppError {
 impl From<DatabaseError> for AppError {
     fn from(err: DatabaseError) -> Self {
         Self::Database(err)
+    }
+}
+
+// Automatically convert EnvironmentError -> AppError
+impl From<EnvironmentError> for AppError {
+    fn from(err: EnvironmentError) -> Self {
+        Self::Environment(err)
     }
 }
 
