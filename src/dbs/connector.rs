@@ -49,10 +49,4 @@ impl DbConfig {
                 .map_err(|_| DatabaseError::ConfigError("DB_PASSWORD not set".to_string()))?,
         })
     }
-    // Establishes a database connection using this configuration.
-    // # Errors
-    // Returns `DatabaseError` if connection establishment fails.
-    // pub async fn connect(&self) -> Result<DbConnection, DatabaseError> {
-    //     establish_connection(self).await
-    // }
 }

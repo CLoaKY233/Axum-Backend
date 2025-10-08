@@ -40,16 +40,9 @@ pub async fn load_database() -> Result<DbConnection, AppError> {
 }
 
 /// Loads environment variables from .env file
+#[must_use]
 pub fn load_env() -> bool {
-    let env_loaded = dotenvy::dotenv().is_ok();
-
-    if env_loaded {
-        info!("Loaded .env file");
-    } else {
-        error!("No .env file found");
-    }
-
-    env_loaded
+    dotenvy::dotenv().is_ok()
 }
 
 /// Creates a TCP listener bound to the specified address
@@ -83,10 +76,15 @@ pub async fn initialize() -> Result<
     AppError,
 > {
     // Load environment variables
-    load_env();
+    let env_loaded = load_env();
 
     // Initialize tracing
     init_tracing();
+    if env_loaded {
+        info!("Loaded .env file");
+    } else {
+        error!("No .env file found");
+    }
 
     info!(version = env!("CARGO_PKG_VERSION"), "Application");
     info!("Application is starting");
