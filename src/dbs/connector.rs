@@ -6,7 +6,7 @@ use surrealdb::opt::auth::Namespace;
 /// Establishes a connection to the `SurrealDB` database.
 /// # Errors
 /// Returns `DatabaseError::ConnectionError` or `DatabaseError::AuthenticationError` on failure.
-pub async fn establish_connection(config: &DbConfig) -> Result<DbConnection, DatabaseError> {
+pub async fn connect(config: &DbConfig) -> Result<DbConnection, DatabaseError> {
     let db = surrealdb::engine::any::connect(&config.endpoint)
         .await
         .map_err(|e| DatabaseError::ConnectionError(e.to_string()))?;
@@ -48,11 +48,5 @@ impl DbConfig {
             password: std::env::var("DB_PASSWORD")
                 .map_err(|_| DatabaseError::ConfigError("DB_PASSWORD not set".to_string()))?,
         })
-    }
-    /// Establishes a database connection using this configuration.
-    /// # Errors
-    /// Returns `DatabaseError` if connection establishment fails.
-    pub async fn connect(&self) -> Result<DbConnection, DatabaseError> {
-        establish_connection(self).await
     }
 }
