@@ -7,6 +7,7 @@ use crate::{
     init_tracing,
     sys::{
         config::{server::ServerConfig, state::AppState},
+        env,
         health::components::create_health_checkers,
     },
 };
@@ -29,12 +30,17 @@ pub async fn load_database() -> Result<DbConnection, AppError> {
         database = %config.database,
         "Attempting to connect to the database"
     );
-
-    let connection = timeout(Duration::from_secs(10), connect(&config))
+    let timeout_secs = env::get_parsed_or_default("DB_CONNECTION_TIMEOUT", 10);
+    let connection = timeout(Duration::from_secs(timeout_secs), connect(&config))
         .await
         .map_err(|_| {
-            error!("Failed to connect to the database: connection timed out after 10 seconds");
-            AppError::ServerError("Database connection timeout".to_string())
+            error!(
+                "Failed to connect to the database: connection timed out after {} seconds",
+                timeout_secs
+            );
+            AppError::ServerError(format!(
+                "Database connection timeout after {timeout_secs} seconds"
+            ))
         })??;
 
     info!("Successfully connected to the database");
