@@ -18,9 +18,12 @@ pub fn get_or_default(key: &str, default: &str) -> String {
     })
 }
 
-/// Retrieves and parses an environment variable to any type implementing `FromStr`
+/// Retrieves and parses an environment variable.
+///
 /// # Errors
-/// Returns `EnvironmentError` if the variable is not set or cannot be parsed
+///
+/// - `EnvironmentError::NotFoundError` if the variable is not set.
+/// - `EnvironmentError::ParseError` if the variable cannot be parsed.
 pub fn get_parsed<T>(key: &str) -> Result<T, EnvironmentError>
 where
     T: FromStr,

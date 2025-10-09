@@ -17,9 +17,12 @@ use tokio::time::{Duration, timeout};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
-/// Loads and establishes a database connection
+/// Loads and establishes a database connection.
+///
 /// # Errors
-/// Returns `AppError::ServerError` if the connection times out or if the database configuration is invalid.
+///
+/// - `AppError::Database` if configuration is invalid or connection/authentication fails
+/// - `AppError::ServerError` if the connection times out
 pub async fn load_database() -> Result<DbConnection, AppError> {
     info!("Loading database configuration from environment");
     let config = DbConfig::from_env()?;
@@ -54,9 +57,12 @@ pub fn load_env() -> bool {
     dotenvy::dotenv().is_ok()
 }
 
-/// Creates a TCP listener bound to the specified address
+/// Creates a TCP listener bound to the specified address.
+///
 /// # Errors
-/// Returns `AppError::BindError` if the server fails to bind to the specified address.
+///
+/// Returns `AppError::BindError` if the server fails to bind to the address,
+/// for example if the port is already in use.
 pub async fn load_listener(addr: &str) -> Result<tokio::net::TcpListener, AppError> {
     let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
         error!(error = %e, "Failed to bind server to {}", addr);
@@ -72,10 +78,14 @@ pub fn load_router() -> Router<Arc<AppState>> {
     Router::new().layer(TraceLayer::new_for_http())
 }
 
-/// Initializes the entire application
-/// Returns the router and listener ready to be served
+/// Initializes the application.
+///
 /// # Errors
-/// Returns `AppError` if any of the initialization steps fail.
+///
+/// - `AppError::Database` for database configuration or connection failures
+/// - `AppError::ServerError` for connection timeouts
+/// - `AppError::BindError` if the server fails to bind to its address
+/// - `AppError::Environment` if required environment variables are missing
 pub async fn initialize() -> Result<
     (
         Router<Arc<AppState>>,

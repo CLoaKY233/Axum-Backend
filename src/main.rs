@@ -6,6 +6,11 @@ use axum_backend::{
 
 use tracing::error;
 
+/// Initializes and runs the application.
+///
+/// # Errors
+///
+/// Returns `AppError` if initialization or server execution fails.
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
     let (app, state, listener) = initialize().await?;
