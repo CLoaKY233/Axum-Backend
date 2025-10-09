@@ -40,13 +40,13 @@ where
 #[must_use]
 pub fn get_parsed_or_default<T>(key: &str, default: T) -> T
 where
-    T: FromStr,
+    T: FromStr + std::fmt::Debug,
 {
     env::var(key)
         .ok()
         .and_then(|v| v.parse::<T>().ok())
         .unwrap_or_else(|| {
-            debug!(key = %key, "Using default parsed value for environment variable");
+            debug!(key = %key, default = ?default, "Using default parsed value for environment variable");
             default
         })
 }

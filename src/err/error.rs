@@ -7,6 +7,7 @@ use axum::{
 };
 use serde_json::json;
 use std::fmt::{self};
+use tracing::error;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -42,9 +43,10 @@ impl IntoResponse for AppError {
 
             // Environment errors at runtime (shouldn't normally happen)
             Self::Environment(env_err) => {
+                error!(error = %env_err, "Environment configuration error");
                 let body = Json(json!({
                     "error": "configuration_error",
-                    "message": env_err.to_string()
+                    "message": "Application misconfiguration detected. Check server logs."
                 }));
                 (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
             }

@@ -35,19 +35,19 @@ impl DbConfig {
     pub fn from_env() -> Result<Self, DatabaseError> {
         Ok(Self {
             endpoint: env::get_required("DB_ENDPOINT")
-                .map_err(|_| DatabaseError::ConfigError("DB_ENDPOINT not set".to_string()))?,
+                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
 
             namespace: env::get_required("DB_NAMESPACE")
-                .map_err(|_| DatabaseError::ConfigError("DB_NAMESPACE not set".to_string()))?,
+                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
 
             database: env::get_required("DB_NAME")
-                .map_err(|_| DatabaseError::ConfigError("DB_NAME not set".to_string()))?,
+                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
 
             username: env::get_required("DB_USERNAME")
-                .map_err(|_| DatabaseError::ConfigError("DB_USERNAME not set".to_string()))?,
+                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
 
             password: env::get_required("DB_PASSWORD")
-                .map_err(|_| DatabaseError::ConfigError("DB_PASSWORD not set".to_string()))?,
+                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
         })
     }
 }
