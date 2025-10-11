@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  axum-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axum_backend
+    ports:
+      - "3000:3000"
+    environment:
+      # Database configuration (cloud SurrealDB)
+      - DB_ENDPOINT=${DB_ENDPOINT}
+      - DB_NAMESPACE=${DB_NAMESPACE}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_CONNECTION_TIMEOUT=10
+      - DB_HEALTH_CHECK_TIMEOUT=5
+
+      # Server configuration
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3000
+
+      # Logging configuration
+      - LOG_FORMAT=compact
+      - RUST_LOG=axum_backend=info,tower_http=info,warn
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

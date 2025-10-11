@@ -32,5 +32,5 @@ async fn main() -> Result<(), AppError> {
 
 /// The root endpoint of the application.
 async fn root() -> &'static str {
-    "Welcome to Anubrahman"
+    "Welcome to the system"
 }
