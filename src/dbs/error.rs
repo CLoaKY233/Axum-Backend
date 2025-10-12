@@ -51,3 +51,32 @@ impl From<surrealdb::Error> for DatabaseError {
         Self::QueryError(err.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::response::IntoResponse;
+
+    #[test]
+    fn test_database_error_display() {
+        let error = DatabaseError::ConnectionError("Connection failed".to_string());
+        assert_eq!(error.to_string(), "Connection error: Connection failed");
+        let error = DatabaseError::NotFound("User not found".to_string());
+        assert_eq!(error.to_string(), "Not found: User not found");
+    }
+
+    #[test]
+    fn test_database_error_into_response() {
+        let error = DatabaseError::AuthenticationError("Invalid credentials".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let error = DatabaseError::NotFound("Resource not found".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let error = DatabaseError::ConnectionError("Connection failed".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+}

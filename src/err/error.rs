@@ -105,3 +105,35 @@ impl From<surrealdb::Error> for AppError {
         Self::Database(DatabaseError::QueryError(err.to_string()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_app_error_from_database_error() {
+        let db_error = DatabaseError::QueryError("Query failed".to_string());
+        let app_error: AppError = db_error.into();
+        assert!(matches!(app_error, AppError::Database(_)));
+    }
+
+    #[test]
+    fn test_app_error_from_io_error() {
+        let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let app_error: AppError = io_error.into();
+        assert!(matches!(app_error, AppError::BindError(_)));
+    }
+
+    #[test]
+    fn test_app_error_display() {
+        let error = AppError::ServerError("Server error".to_string());
+        assert_eq!(error.to_string(), "Server error: Server error");
+    }
+
+    #[test]
+    fn test_app_error_into_response() {
+        let error = AppError::ServerError("Internal error".to_string());
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}
