@@ -1,6 +1,6 @@
 use crate::{
-    dbs::models::{Database, DbConnection},
-    sys::health::models::HealthCheck,
+    dbs::{Database, DbConnection},
+    sys::health::traits::HealthCheck,
 };
 
 /// Creates and returns a vector of all system health checkers.

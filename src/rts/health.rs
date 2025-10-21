@@ -1,13 +1,13 @@
 use crate::sys::{
     config::state::AppState,
-    health::models::{ComponentHealth, HealthStatus, SystemHealthResponse},
+    health::{ComponentHealth, HealthStatus, SystemHealthResponse},
 };
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use futures::future::join_all;
 use std::sync::Arc;
 
 /// Aggregates the health of all system components.
-pub async fn aggregate_health(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let check_futures = state.health_checkers.iter().map(|checker| checker.check());
 
     let results: Vec<ComponentHealth> = join_all(check_futures).await;

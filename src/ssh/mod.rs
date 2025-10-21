@@ -1,5 +1,7 @@
-pub mod connector;
-pub mod error;
-pub mod handler;
-pub mod models;
-pub use handler::ssh_connection_handler;
+mod connector;
+mod error;
+mod models;
+
+pub use connector::ssh_connect;
+pub use error::SshError;
+pub use models::{ConnectionStatus, SshCredentials};

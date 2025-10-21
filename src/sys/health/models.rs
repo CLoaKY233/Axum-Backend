@@ -22,9 +22,3 @@ pub struct SystemHealthResponse {
     pub components: Vec<ComponentHealth>, // Changed from HashMap to Vec
     pub timestamp: i64,
 }
-
-#[async_trait::async_trait]
-pub trait HealthCheck: Send + Sync {
-    /// Performs the health check and returns component health status
-    async fn check(&self) -> ComponentHealth;
-}

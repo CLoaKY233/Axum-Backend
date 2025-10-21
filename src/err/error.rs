@@ -1,6 +1,6 @@
-use crate::dbs::error::DatabaseError;
-use crate::ssh::error::SshError;
-use crate::sys::env::EnvironmentError;
+use crate::dbs::DatabaseError;
+use crate::ssh::SshError;
+use crate::sys::EnvironmentError;
 use axum::{
     Json,
     http::StatusCode,
@@ -42,78 +42,105 @@ impl std::error::Error for AppError {
     }
 }
 
+// ✅ SINGLE, CONSISTENT IntoResponse implementation
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        match self {
-            // Delegate to DatabaseError's response
-            Self::Database(db_err) => db_err.into_response(),
-            Self::Ssh(ssh_err) => ssh_err.into_response(),
-            // Environment errors at runtime (shouldn't normally happen)
-            Self::Environment(env_err) => {
-                error!(error = %env_err, "Environment configuration error");
-                let body = Json(json!({
-                    "error": "configuration_error",
-                    "message": "Application misconfiguration detected. Check server logs."
-                }));
-                (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+        let (status, error_type, message) = match self {
+            // Database errors
+            Self::Database(e) => match e {
+                DatabaseError::ConnectionError(msg) => (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "database_connection_error",
+                    msg,
+                ),
+                DatabaseError::QueryError(msg) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "database_query_error",
+                    msg,
+                ),
+                DatabaseError::AuthenticationError(msg) => {
+                    (StatusCode::UNAUTHORIZED, "database_auth_error", msg)
+                }
+                DatabaseError::NotFound(msg) => (StatusCode::NOT_FOUND, "database_not_found", msg),
+                DatabaseError::ConfigError(msg) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "database_config_error",
+                    msg,
+                ),
+            },
+
+            // SSH errors
+            Self::Ssh(e) => match e {
+                SshError::ConnectionFailed(msg) => (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "ssh_connection_failed",
+                    msg,
+                ),
+                SshError::AuthenticationFailed(msg) => {
+                    (StatusCode::UNAUTHORIZED, "ssh_auth_failed", msg)
+                }
+                SshError::InternalTaskError(msg) => {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "ssh_internal_error", msg)
+                }
+            },
+
+            // Environment errors (internal, don't expose details)
+            Self::Environment(e) => {
+                error!(error = %e, "Environment configuration error");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "configuration_error",
+                    "Application misconfiguration detected. Check server logs.".to_string(),
+                )
             }
 
-            // Handle Server errors
-            Self::ServerError(msg) => {
-                let body = Json(json!({
-                    "error": "server_error",
-                    "message": msg
-                }));
-                (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
-            }
+            // Server errors
+            Self::ServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "server_error", msg),
 
-            Self::BindError(msg) => {
-                let body = Json(json!({
-                    "error": "bind_error",
-                    "message": msg
-                }));
-                (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
-            }
-        }
+            // Bind errors
+            Self::BindError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "bind_error", msg),
+        };
+
+        let body = Json(json!({
+            "error": error_type,
+            "message": message
+        }));
+
+        (status, body).into_response()
     }
 }
 
-// Automatically convert DatabaseError -> AppError
+// Keep all From implementations for automatic conversion
 impl From<DatabaseError> for AppError {
     fn from(err: DatabaseError) -> Self {
         Self::Database(err)
     }
 }
 
-// Automatically convert EnvironmentError -> AppError
 impl From<EnvironmentError> for AppError {
     fn from(err: EnvironmentError) -> Self {
         Self::Environment(err)
     }
 }
 
-// Automatically convert ssh::SshError -> AppError
 impl From<SshError> for AppError {
     fn from(err: SshError) -> Self {
         Self::Ssh(err)
     }
 }
 
-// Automatically convert io::Error -> AppError
 impl From<std::io::Error> for AppError {
     fn from(err: std::io::Error) -> Self {
         Self::BindError(err.to_string())
     }
 }
 
-// Automatically convert env::VarError -> AppError
 impl From<std::env::VarError> for AppError {
     fn from(err: std::env::VarError) -> Self {
         Self::ServerError(format!("Environment variable error: {err}"))
     }
 }
 
-// To convert SurrealDB errors directly
 impl From<surrealdb::Error> for AppError {
     fn from(err: surrealdb::Error) -> Self {
         Self::Database(DatabaseError::QueryError(err.to_string()))

@@ -1,5 +1,6 @@
-pub mod aggregator;
-pub mod components;
-pub mod models;
-
-pub use aggregator::aggregate_health;
+mod components;
+mod models;
+mod traits;
+pub use components::create_health_checkers;
+pub use models::{ComponentHealth, HealthStatus, SystemHealthResponse};
+pub use traits::HealthCheck;

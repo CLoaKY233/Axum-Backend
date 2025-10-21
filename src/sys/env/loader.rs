@@ -30,13 +30,11 @@ where
 {
     let value = get_required(key)?;
 
-    value
-        .parse::<T>()
-        .map_err(|_| EnvironmentError::ParseError {
-            key: key.to_string(),
-            value: value.clone(),
-            type_name: std::any::type_name::<T>(),
-        })
+    value.parse::<T>().map_err(|_| EnvironmentError::Parse {
+        key: key.to_string(),
+        value: value.clone(),
+        type_name: std::any::type_name::<T>(),
+    })
 }
 
 /// Retrieves and parses an environment variable with a default value
