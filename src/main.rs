@@ -1,13 +1,7 @@
-use axum::{
-    Json,
-    routing::{get, post},
-};
+use axum::routing::{get, post};
 use axum_backend::{
     AppError,
-    ssh::{
-        connector::connect as ssh_connect,
-        models::{ConnectionStatus, SshCredentials},
-    },
+    ssh::ssh_connection_handler,
     sys::{health::aggregate_health, init::initialize},
 };
 
@@ -26,7 +20,7 @@ async fn main() -> Result<(), AppError> {
     let app = app
         .route("/", get(root))
         .route("/health", get(aggregate_health))
-        .route("/ssh/connect", post(test_ssh_connection_handler))
+        .route("/ssh/connect", post(ssh_connection_handler))
         .with_state(state);
 
     // Start the server
@@ -41,12 +35,4 @@ async fn main() -> Result<(), AppError> {
 /// The root endpoint of the application.
 async fn root() -> &'static str {
     "Welcome to the system"
-}
-
-/// Handler for testing an SSH connection.
-async fn test_ssh_connection_handler(
-    Json(credentials): Json<SshCredentials>,
-) -> Result<Json<ConnectionStatus>, AppError> {
-    let status = ssh_connect(&credentials).await?;
-    Ok(Json(status))
 }

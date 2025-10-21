@@ -7,22 +7,15 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde_json::json;
-use std::fmt::{self};
+use std::fmt;
 use tracing::error;
 
 #[derive(Debug)]
 pub enum AppError {
-    // Database Errors
     Database(DatabaseError),
-
-    // SSH errors
     Ssh(SshError),
-
-    // Server/IO Errors
     ServerError(String),
     BindError(String),
-
-    // Environment Errors
     Environment(EnvironmentError),
 }
 
@@ -38,7 +31,16 @@ impl fmt::Display for AppError {
     }
 }
 
-impl std::error::Error for AppError {}
+impl std::error::Error for AppError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            AppError::Database(e) => Some(e),
+            AppError::Ssh(e) => Some(e),
+            AppError::Environment(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
@@ -90,6 +92,13 @@ impl From<EnvironmentError> for AppError {
     }
 }
 
+// Automatically convert ssh::SshError -> AppError
+impl From<SshError> for AppError {
+    fn from(err: SshError) -> Self {
+        Self::Ssh(err)
+    }
+}
+
 // Automatically convert io::Error -> AppError
 impl From<std::io::Error> for AppError {
     fn from(err: std::io::Error) -> Self {
@@ -108,11 +117,5 @@ impl From<std::env::VarError> for AppError {
 impl From<surrealdb::Error> for AppError {
     fn from(err: surrealdb::Error) -> Self {
         Self::Database(DatabaseError::QueryError(err.to_string()))
-    }
-}
-// Automatically convert ssh::SshError -> AppError
-impl From<SshError> for AppError {
-    fn from(err: SshError) -> Self {
-        Self::Ssh(err)
     }
 }
