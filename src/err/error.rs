@@ -1,4 +1,5 @@
 use crate::dbs::error::DatabaseError;
+use crate::ssh::error::SshError;
 use crate::sys::env::EnvironmentError;
 use axum::{
     Json,
@@ -14,6 +15,9 @@ pub enum AppError {
     // Database Errors
     Database(DatabaseError),
 
+    // SSH errors
+    Ssh(SshError),
+
     // Server/IO Errors
     ServerError(String),
     BindError(String),
@@ -25,6 +29,7 @@ pub enum AppError {
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Ssh(e) => write!(f, "SSH error: {e}"),
             Self::Database(e) => write!(f, "Database error: {e}"),
             Self::Environment(e) => write!(f, "Environment error: {e}"),
             Self::ServerError(msg) => write!(f, "Server error: {msg}"),
@@ -40,7 +45,7 @@ impl IntoResponse for AppError {
         match self {
             // Delegate to DatabaseError's response
             Self::Database(db_err) => db_err.into_response(),
-
+            Self::Ssh(ssh_err) => ssh_err.into_response(),
             // Environment errors at runtime (shouldn't normally happen)
             Self::Environment(env_err) => {
                 error!(error = %env_err, "Environment configuration error");
@@ -82,6 +87,13 @@ impl From<DatabaseError> for AppError {
 impl From<EnvironmentError> for AppError {
     fn from(err: EnvironmentError) -> Self {
         Self::Environment(err)
+    }
+}
+
+// Automatically convert ssh::SshError -> AppError
+impl From<SshError> for AppError {
+    fn from(err: SshError) -> Self {
+        Self::Ssh(err)
     }
 }
 
