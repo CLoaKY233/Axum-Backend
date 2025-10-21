@@ -2,7 +2,7 @@ use super::{
     error::SshError,
     models::{ConnectionStatus, SshCredentials},
 };
-use crate::AppError;
+use crate::err::AppError;
 use std::net::TcpStream;
 use tokio::task;
 use tracing::{Level, debug, error, info, instrument, span};

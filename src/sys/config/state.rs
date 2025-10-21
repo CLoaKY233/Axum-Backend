@@ -1,4 +1,4 @@
-use crate::{dbs::models::DbConnection, sys::health::models::HealthCheck};
+use crate::{dbs::DbConnection, sys::health::HealthCheck};
 use std::sync::Arc;
 
 #[derive(Clone)]

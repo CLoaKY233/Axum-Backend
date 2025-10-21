@@ -1,14 +1,11 @@
 use crate::{
     AppError,
-    dbs::{
-        connector::connect,
-        models::{DbConfig, DbConnection},
-    },
+    dbs::{DbConfig, DbConnection, connect},
     init_tracing,
     sys::{
         config::{server::ServerConfig, state::AppState},
         env,
-        health::components::create_health_checkers,
+        health::create_health_checkers,
     },
 };
 use axum::Router;
