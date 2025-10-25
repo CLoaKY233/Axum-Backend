@@ -1,5 +1,3 @@
-
-
 use serde::{Deserialize, Serialize};
 
 /// Credentials for an SSH connection.

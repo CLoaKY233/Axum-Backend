@@ -5,6 +5,7 @@ pub enum SshError {
     ConnectionFailed(String),
     AuthenticationFailed(String),
     InternalTaskError(String),
+    TimeoutError(String),
 }
 
 impl fmt::Display for SshError {
@@ -13,6 +14,7 @@ impl fmt::Display for SshError {
             Self::ConnectionFailed(msg) => write!(f, "SSH connection failed: {msg}"),
             Self::AuthenticationFailed(msg) => write!(f, "SSH authentication failed: {msg}"),
             Self::InternalTaskError(msg) => write!(f, "Internal SSH task error: {msg}"),
+            Self::TimeoutError(msg) => write!(f, "SSH operation timed out: {msg}"),
         }
     }
 }
