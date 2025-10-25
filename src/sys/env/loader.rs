@@ -24,6 +24,7 @@ pub fn get_or_default(key: &str, default: &str) -> String {
 ///
 /// - `EnvironmentError::NotFoundError` if the variable is not set.
 /// - `EnvironmentError::ParseError` if the variable cannot be parsed.
+#[allow(dead_code)]
 pub fn get_parsed<T>(key: &str) -> Result<T, EnvironmentError>
 where
     T: FromStr,
@@ -55,6 +56,7 @@ where
 /// Retrieves a boolean environment variable
 /// Accepts: true/false, 1/0, yes/no, on/off (case-insensitive)
 #[must_use]
+#[allow(dead_code)]
 pub fn get_bool(key: &str, default: bool) -> bool {
     env::var(key)
         .ok()

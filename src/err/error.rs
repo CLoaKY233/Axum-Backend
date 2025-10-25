@@ -42,63 +42,97 @@ impl std::error::Error for AppError {
     }
 }
 
-// ✅ SINGLE, CONSISTENT IntoResponse implementation
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, error_type, message) = match self {
+        let (status, error_type, message) = match &self {
             // Database errors
-            Self::Database(e) => match e {
-                DatabaseError::ConnectionError(msg) => (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "database_connection_error",
-                    msg,
-                ),
-                DatabaseError::QueryError(msg) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "database_query_error",
-                    msg,
-                ),
-                DatabaseError::AuthenticationError(msg) => {
-                    (StatusCode::UNAUTHORIZED, "database_auth_error", msg)
+            Self::Database(e) => {
+                error!(error = ?e, "Database error occurred");
+                match e {
+                    DatabaseError::ConnectionError(_) => (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "database_connection_error",
+                        "Database service temporarily unavailable",
+                    ),
+                    DatabaseError::QueryError(_) => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "database_query_error",
+                        "Database query failed",
+                    ),
+                    DatabaseError::AuthenticationError(_) => (
+                        StatusCode::UNAUTHORIZED,
+                        "database_auth_error",
+                        "Database authentication failed",
+                    ),
+                    DatabaseError::NotFound(_) => (
+                        StatusCode::NOT_FOUND,
+                        "database_not_found",
+                        "Resource not found",
+                    ),
+                    DatabaseError::ConfigError(_) => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "database_config_error",
+                        "Database configuration error",
+                    ),
                 }
-                DatabaseError::NotFound(msg) => (StatusCode::NOT_FOUND, "database_not_found", msg),
-                DatabaseError::ConfigError(msg) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "database_config_error",
-                    msg,
-                ),
-            },
+            }
 
             // SSH errors
-            Self::Ssh(e) => match e {
-                SshError::ConnectionFailed(msg) => (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "ssh_connection_failed",
-                    msg,
-                ),
-                SshError::AuthenticationFailed(msg) => {
-                    (StatusCode::UNAUTHORIZED, "ssh_auth_failed", msg)
+            Self::Ssh(e) => {
+                error!(error = ?e, "SSH error occurred");
+                match e {
+                    SshError::ConnectionFailed(_) => (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "ssh_connection_failed",
+                        "SSH connection failed",
+                    ),
+                    SshError::AuthenticationFailed(_) => (
+                        StatusCode::UNAUTHORIZED,
+                        "ssh_auth_failed",
+                        "SSH authentication failed",
+                    ),
+                    SshError::InternalTaskError(_) => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "ssh_internal_error",
+                        "SSH operation failed",
+                    ),
+                    SshError::TimeoutError(_) => (
+                        StatusCode::REQUEST_TIMEOUT,
+                        "ssh_connection_timeout",
+                        "SSH connection timed out",
+                    ),
                 }
-                SshError::InternalTaskError(msg) => {
-                    (StatusCode::INTERNAL_SERVER_ERROR, "ssh_internal_error", msg)
-                }
-            },
+            }
 
-            // Environment errors (internal, don't expose details)
+            // Environment errors
             Self::Environment(e) => {
-                error!(error = %e, "Environment configuration error");
+                error!(error = ?e, "Environment configuration error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "configuration_error",
-                    "Application misconfiguration detected. Check server logs.".to_string(),
+                    "Application misconfiguration detected",
                 )
             }
 
             // Server errors
-            Self::ServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "server_error", msg),
+            Self::ServerError(msg) => {
+                error!(error = %msg, "Server error");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "server_error",
+                    "Internal server error",
+                )
+            }
 
             // Bind errors
-            Self::BindError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "bind_error", msg),
+            Self::BindError(msg) => {
+                error!(error = %msg, "Bind error");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "bind_error",
+                    "Server startup failed",
+                )
+            }
         };
 
         let body = Json(json!({
