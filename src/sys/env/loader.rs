@@ -120,7 +120,7 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            EnvironmentError::ParseError { .. }
+            EnvironmentError::Parse { .. }
         ));
         unsafe { std::env::remove_var("TEST_PORT") };
     }

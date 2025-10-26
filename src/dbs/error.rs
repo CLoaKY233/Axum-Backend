@@ -33,7 +33,8 @@ impl From<surrealdb::Error> for DatabaseError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::response::IntoResponse;
+    use crate::err::AppError;
+    use axum::{http::StatusCode, response::IntoResponse};
 
     #[test]
     fn test_database_error_display() {
@@ -45,16 +46,22 @@ mod tests {
 
     #[test]
     fn test_database_error_into_response() {
-        let error = DatabaseError::AuthenticationError("Invalid credentials".to_string());
-        let response = error.into_response();
+        // Test AuthenticationError
+        let db_error = DatabaseError::AuthenticationError("Invalid credentials".to_string());
+        let app_error: AppError = db_error.into();
+        let response = app_error.into_response();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-        let error = DatabaseError::NotFound("Resource not found".to_string());
-        let response = error.into_response();
+        // Test NotFound error
+        let db_error = DatabaseError::NotFound("Resource not found".to_string());
+        let app_error: AppError = db_error.into();
+        let response = app_error.into_response();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
-        let error = DatabaseError::ConnectionError("Connection failed".to_string());
-        let response = error.into_response();
+        // Test ConnectionError
+        let db_error = DatabaseError::ConnectionError("Connection failed".to_string());
+        let app_error: AppError = db_error.into();
+        let response = app_error.into_response();
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 }
