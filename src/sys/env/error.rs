@@ -3,7 +3,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum EnvironmentError {
     NotFoundError(String),
-    ParseError {
+    Parse {
         key: String,
         value: String,
         type_name: &'static str,
@@ -16,7 +16,7 @@ impl fmt::Display for EnvironmentError {
             Self::NotFoundError(key) => {
                 write!(f, "Environment variable '{key}' is not set")
             }
-            Self::ParseError {
+            Self::Parse {
                 key,
                 value,
                 type_name,

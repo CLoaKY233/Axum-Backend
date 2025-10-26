@@ -1,5 +1,10 @@
-pub mod dbs;
-pub mod err;
-pub use err::error::AppError;
-pub mod sys;
-pub use sys::log::init_tracing;
+mod dbs;
+mod err;
+mod rts;
+mod ssh;
+mod sys;
+
+// Public API exports
+pub use err::AppError;
+pub use rts::{health_handler, root_handler, ssh_handler};
+pub use sys::{init_tracing, initialize};

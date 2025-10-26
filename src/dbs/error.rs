@@ -1,9 +1,3 @@
-use axum::{
-    Json,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
-use serde_json::json;
 use std::fmt;
 
 #[derive(Debug)]
@@ -30,24 +24,44 @@ impl fmt::Display for DatabaseError {
 
 impl std::error::Error for DatabaseError {}
 
-impl IntoResponse for DatabaseError {
-    fn into_response(self) -> Response {
-        let (status, error_message) = match self {
-            Self::ConnectionError(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg),
-            Self::QueryError(msg) | Self::ConfigError(msg) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, msg)
-            }
-
-            Self::AuthenticationError(msg) => (StatusCode::UNAUTHORIZED, msg),
-            Self::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
-        };
-        let body = Json(json!({"error":error_message}));
-        (status, body).into_response()
-    }
-}
-
 impl From<surrealdb::Error> for DatabaseError {
     fn from(err: surrealdb::Error) -> Self {
         Self::QueryError(err.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::err::AppError;
+    use axum::{http::StatusCode, response::IntoResponse};
+
+    #[test]
+    fn test_database_error_display() {
+        let error = DatabaseError::ConnectionError("Connection failed".to_string());
+        assert_eq!(error.to_string(), "Connection error: Connection failed");
+        let error = DatabaseError::NotFound("User not found".to_string());
+        assert_eq!(error.to_string(), "Not found: User not found");
+    }
+
+    #[test]
+    fn test_database_error_into_response() {
+        // Test AuthenticationError
+        let db_error = DatabaseError::AuthenticationError("Invalid credentials".to_string());
+        let app_error: AppError = db_error.into();
+        let response = app_error.into_response();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        // Test NotFound error
+        let db_error = DatabaseError::NotFound("Resource not found".to_string());
+        let app_error: AppError = db_error.into();
+        let response = app_error.into_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        // Test ConnectionError
+        let db_error = DatabaseError::ConnectionError("Connection failed".to_string());
+        let app_error: AppError = db_error.into();
+        let response = app_error.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 }

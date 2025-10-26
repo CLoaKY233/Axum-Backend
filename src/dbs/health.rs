@@ -1,8 +1,7 @@
 use super::models::Database;
 use crate::sys::{
     env,
-    health::models::HealthCheck,
-    health::models::{ComponentHealth, HealthStatus},
+    health::{ComponentHealth, HealthCheck, HealthStatus},
 };
 use tokio::time::{Duration, Instant, timeout};
 use tracing::{debug, warn};

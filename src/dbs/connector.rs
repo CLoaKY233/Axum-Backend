@@ -51,3 +51,30 @@ impl DbConfig {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_connect_invalid_endpoint() {
+        // Description: Validates that the connect function returns a `ConnectionError`
+        // when the database endpoint is incorrect.
+        // Reasoning: This is a common operational failure. The application must
+        // handle it gracefully.
+        let config = DbConfig {
+            endpoint: "ws://localhost:9999".to_string(), // Invalid port
+            namespace: "test".to_string(),
+            database: "test".to_string(),
+            username: "root".to_string(),
+            password: "root".to_string(),
+        };
+
+        let result = connect(&config).await;
+
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            DatabaseError::ConnectionError(_)
+        ));
+    }
+}

@@ -1,8 +1,5 @@
-use axum::routing::get;
-use axum_backend::{
-    AppError,
-    sys::{health::aggregate_health, init::initialize},
-};
+use axum::routing::{get, post};
+use axum_backend::{AppError, health_handler, initialize, root_handler, ssh_handler};
 
 use tracing::error;
 
@@ -17,8 +14,9 @@ async fn main() -> Result<(), AppError> {
 
     // Add routes to the router
     let app = app
-        .route("/", get(root))
-        .route("/health", get(aggregate_health))
+        .route("/", get(root_handler))
+        .route("/health", get(health_handler))
+        .route("/ssh/connect", post(ssh_handler))
         .with_state(state);
 
     // Start the server
@@ -28,9 +26,4 @@ async fn main() -> Result<(), AppError> {
     })?;
 
     Ok(())
-}
-
-/// The root endpoint of the application.
-async fn root() -> &'static str {
-    "Welcome to the system"
 }
