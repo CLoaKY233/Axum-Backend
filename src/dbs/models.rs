@@ -22,7 +22,7 @@ impl fmt::Debug for DbConfig {
         f.debug_struct("Database Configuration")
             .field("endpoint", &self.endpoint)
             .field("namespace", &self.namespace)
-            .field("database", &self.endpoint)
+            .field("database", &self.database)
             .field("username", &"***")
             .field("password", &"***")
             .finish()
@@ -114,6 +114,8 @@ mod tests {
         let debug_output = format!("{config:?}");
 
         assert!(debug_output.contains("ws://test.com"));
+        assert!(debug_output.contains("ns_test"));
+        assert!(debug_output.contains("db_test"));
         assert!(!debug_output.contains("foo"));
         assert!(!debug_output.contains("bar"));
         assert!(debug_output.contains("***"));
