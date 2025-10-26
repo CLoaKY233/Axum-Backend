@@ -71,6 +71,15 @@ pub async fn load_listener(addr: &str) -> Result<tokio::net::TcpListener, AppErr
     Ok(listener)
 }
 
+/// Configures and builds the application's main router.
+///
+/// This function assembles all API routes and attaches necessary middleware,
+/// such as request tracing. The router is configured to operate with the
+/// shared `AppState`.
+///
+/// # Returns
+///
+/// An Axum `Router` instance populated with all application routes.
 pub fn load_router() -> Router<Arc<AppState>> {
     Router::new().layer(TraceLayer::new_for_http())
 }
