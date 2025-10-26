@@ -1,3 +1,4 @@
+use std::fmt;
 use std::sync::Arc;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
@@ -7,13 +8,25 @@ pub struct Database {
     pub db: DbConnection,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DbConfig {
     pub endpoint: String,
     pub namespace: String,
     pub database: String,
     pub username: String,
     pub password: String,
+}
+
+impl fmt::Debug for DbConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Database Configuration")
+            .field("endpoint", &self.endpoint)
+            .field("namespace", &self.namespace)
+            .field("database", &self.endpoint)
+            .field("username", &"***")
+            .field("password", &"***")
+            .finish()
+    }
 }
 
 #[cfg(test)]
@@ -84,5 +97,25 @@ mod tests {
         assert!(matches!(result.unwrap_err(), DatabaseError::ConfigError(_)));
 
         clear_db_env();
+    }
+
+    #[test]
+    fn test_dbconfig_debug_masks_credentials() {
+        // Description: Ensures Debug output masks sensitive credentials
+        // Reasoning: Prevents accidental credential leaks in logs
+        let config = DbConfig {
+            endpoint: "ws://test.com".to_string(),
+            namespace: "ns_test".to_string(),
+            database: "db_test".to_string(),
+            username: "foo".to_string(),
+            password: "bar".to_string(),
+        };
+
+        let debug_output = format!("{config:?}");
+
+        assert!(debug_output.contains("ws://test.com"));
+        assert!(!debug_output.contains("foo"));
+        assert!(!debug_output.contains("bar"));
+        assert!(debug_output.contains("***"));
     }
 }

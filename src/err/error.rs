@@ -136,6 +136,7 @@ impl IntoResponse for AppError {
         };
 
         let body = Json(json!({
+            "status":status.as_u16(),
             "error": error_type,
             "message": message
         }));
@@ -163,12 +164,6 @@ impl From<SshError> for AppError {
     }
 }
 
-impl From<std::io::Error> for AppError {
-    fn from(err: std::io::Error) -> Self {
-        Self::BindError(err.to_string())
-    }
-}
-
 impl From<std::env::VarError> for AppError {
     fn from(err: std::env::VarError) -> Self {
         Self::ServerError(format!("Environment variable error: {err}"))
@@ -190,13 +185,6 @@ mod tests {
         let db_error = DatabaseError::QueryError("Query failed".to_string());
         let app_error: AppError = db_error.into();
         assert!(matches!(app_error, AppError::Database(_)));
-    }
-
-    #[test]
-    fn test_app_error_from_io_error() {
-        let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
-        let app_error: AppError = io_error.into();
-        assert!(matches!(app_error, AppError::BindError(_)));
     }
 
     #[test]

@@ -23,7 +23,7 @@ pub fn get_or_default(key: &str, default: &str) -> String {
 /// # Errors
 ///
 /// - `EnvironmentError::NotFoundError` if the variable is not set.
-/// - `EnvironmentError::ParseError` if the variable cannot be parsed.
+/// - `EnvironmentError::Parse` if the variable cannot be parsed.
 #[allow(dead_code)]
 pub fn get_parsed<T>(key: &str) -> Result<T, EnvironmentError>
 where

@@ -54,7 +54,6 @@ impl DbConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::DbConfig;
     use super::*;
     #[tokio::test]
     async fn test_connect_invalid_endpoint() {
