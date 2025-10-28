@@ -5,160 +5,134 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde_json::json;
-use std::fmt;
+use thiserror::Error;
 use tracing::error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AppError {
-    Database(DatabaseError),
-    Ssh(SshError),
+    /// Database-related errors
+    #[error("Database error: {0}")]
+    Database(#[from] DatabaseError),
+
+    /// SSH connection/operation errors
+    #[error("SSH error: {0}")]
+    Ssh(#[from] SshError),
+
+    /// Environment configuration errors
+    #[error("Environment error: {0}")]
+    Environment(#[from] EnvironmentError),
+
+    /// Generic server errors
+    #[error("Server error: {0}")]
     ServerError(String),
+
+    /// Server binding errors
+    #[error("Bind error: {0}")]
     BindError(String),
-    Environment(EnvironmentError),
-}
-
-impl fmt::Display for AppError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Ssh(e) => write!(f, "SSH error: {e}"),
-            Self::Database(e) => write!(f, "Database error: {e}"),
-            Self::Environment(e) => write!(f, "Environment error: {e}"),
-            Self::ServerError(msg) => write!(f, "Server error: {msg}"),
-            Self::BindError(msg) => write!(f, "Bind error: {msg}"),
-        }
-    }
-}
-
-impl std::error::Error for AppError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            AppError::Database(e) => Some(e),
-            AppError::Ssh(e) => Some(e),
-            AppError::Environment(e) => Some(e),
-            _ => None,
-        }
-    }
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, error_type, message) = match &self {
-            // Database errors
-            Self::Database(e) => {
-                error!(error = ?e, "Database error occurred");
-                match e {
-                    DatabaseError::ConnectionError(_) => (
-                        StatusCode::SERVICE_UNAVAILABLE,
-                        "database_connection_error",
-                        "Database service temporarily unavailable",
-                    ),
-                    DatabaseError::QueryError(_) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "database_query_error",
-                        "Database query failed",
-                    ),
-                    DatabaseError::AuthenticationError(_) => (
-                        StatusCode::UNAUTHORIZED,
-                        "database_auth_error",
-                        "Database authentication failed",
-                    ),
-                    DatabaseError::NotFound(_) => (
-                        StatusCode::NOT_FOUND,
-                        "database_not_found",
-                        "Resource not found",
-                    ),
-                    DatabaseError::ConfigError(_) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "database_config_error",
-                        "Database configuration error",
-                    ),
-                }
-            }
+        // Extract status code and error details
+        let (status, error_type, message) = self.get_response_parts();
 
-            // SSH errors
-            Self::Ssh(e) => {
-                error!(error = ?e, "SSH error occurred");
-                match e {
-                    SshError::ConnectionFailed(_) => (
-                        StatusCode::SERVICE_UNAVAILABLE,
-                        "ssh_connection_failed",
-                        "SSH connection failed",
-                    ),
-                    SshError::AuthenticationFailed(_) => (
-                        StatusCode::UNAUTHORIZED,
-                        "ssh_auth_failed",
-                        "SSH authentication failed",
-                    ),
-                    SshError::InternalTaskError(_) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "ssh_internal_error",
-                        "SSH operation failed",
-                    ),
-                    SshError::TimeoutError(_) => (
-                        StatusCode::REQUEST_TIMEOUT,
-                        "ssh_connection_timeout",
-                        "SSH connection timed out",
-                    ),
-                }
+        // Log the error with appropriate level
+        match status {
+            StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE => {
+                error!(error = ?self, status = %status, "Critical error occurred");
             }
-
-            // Environment errors
-            Self::Environment(e) => {
-                error!(error = ?e, "Environment configuration error");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "configuration_error",
-                    "Application misconfiguration detected",
-                )
+            _ => {
+                tracing::warn!(error = ?self, status = %status, "Handled error occurred");
             }
+        }
 
-            // Server errors
-            Self::ServerError(msg) => {
-                error!(error = %msg, "Server error");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "server_error",
-                    "Internal server error",
-                )
-            }
-
-            // Bind errors
-            Self::BindError(msg) => {
-                error!(error = %msg, "Bind error");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "bind_error",
-                    "Server startup failed",
-                )
-            }
-        };
-
+        // Create JSON response
         let body = Json(json!({
-            "status":status.as_u16(),
+            "status": status.as_u16(),
             "error": error_type,
-            "message": message
+            "message": message,
         }));
 
         (status, body).into_response()
     }
 }
 
-// Keep all From implementations for automatic conversion
-impl From<DatabaseError> for AppError {
-    fn from(err: DatabaseError) -> Self {
-        Self::Database(err)
-    }
-}
+impl AppError {
+    /// Extract HTTP response components from error.
+    ///
+    /// Returns `(StatusCode, error_type, user_message)` tuple.
+    #[inline]
+    fn get_response_parts(&self) -> (StatusCode, &'static str, &'static str) {
+        match self {
+            Self::Database(e) => match e {
+                DatabaseError::ConnectionError(_) => (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "database_connection_error",
+                    "Database service temporarily unavailable",
+                ),
+                DatabaseError::QueryError(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "database_query_error",
+                    "Database query failed",
+                ),
+                DatabaseError::AuthenticationError(_) => (
+                    StatusCode::UNAUTHORIZED,
+                    "database_auth_error",
+                    "Database authentication failed",
+                ),
+                DatabaseError::NotFound(_) => (
+                    StatusCode::NOT_FOUND,
+                    "database_not_found",
+                    "Resource not found",
+                ),
+                DatabaseError::ConfigError(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "database_config_error",
+                    "Database configuration error",
+                ),
+            },
 
-impl From<EnvironmentError> for AppError {
-    fn from(err: EnvironmentError) -> Self {
-        Self::Environment(err)
-    }
-}
+            Self::Ssh(e) => match e {
+                SshError::ConnectionFailed(_) => (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "ssh_connection_failed",
+                    "SSH connection failed",
+                ),
+                SshError::AuthenticationFailed(_) => (
+                    StatusCode::UNAUTHORIZED,
+                    "ssh_auth_failed",
+                    "SSH authentication failed",
+                ),
+                SshError::InternalTaskError(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "ssh_internal_error",
+                    "SSH operation failed",
+                ),
+                SshError::TimeoutError(_) => (
+                    StatusCode::REQUEST_TIMEOUT,
+                    "ssh_connection_timeout",
+                    "SSH connection timed out",
+                ),
+            },
 
-impl From<SshError> for AppError {
-    fn from(err: SshError) -> Self {
-        Self::Ssh(err)
+            Self::Environment(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "configuration_error",
+                "Application misconfiguration detected",
+            ),
+
+            Self::ServerError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "server_error",
+                "Internal server error",
+            ),
+
+            Self::BindError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "bind_error",
+                "Server startup failed",
+            ),
+        }
     }
 }
 
@@ -168,33 +142,56 @@ impl From<std::env::VarError> for AppError {
     }
 }
 
-impl From<surrealdb::Error> for AppError {
-    fn from(err: surrealdb::Error) -> Self {
-        Self::Database(DatabaseError::QueryError(err.to_string()))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::error::Error;
 
     #[test]
-    fn test_app_error_from_database_error() {
+    fn test_error_chain() {
         let db_error = DatabaseError::QueryError("Query failed".to_string());
         let app_error: AppError = db_error.into();
+
+        // Test error source chain
+        assert!(app_error.source().is_some());
         assert!(matches!(app_error, AppError::Database(_)));
     }
 
     #[test]
-    fn test_app_error_display() {
-        let error = AppError::ServerError("Server error".to_string());
-        assert_eq!(error.to_string(), "Server error: Server error");
+    fn test_error_display() {
+        let error = AppError::ServerError("Internal error".to_string());
+        assert_eq!(error.to_string(), "Server error: Internal error");
     }
 
     #[test]
-    fn test_app_error_into_response() {
-        let error = AppError::ServerError("Internal error".to_string());
-        let response = error.into_response();
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    fn test_http_status_codes() {
+        let tests = vec![
+            (
+                DatabaseError::NotFound("test".into()),
+                StatusCode::NOT_FOUND,
+            ),
+            (
+                DatabaseError::AuthenticationError("test".into()),
+                StatusCode::UNAUTHORIZED,
+            ),
+            (
+                DatabaseError::ConnectionError("test".into()),
+                StatusCode::SERVICE_UNAVAILABLE,
+            ),
+        ];
+
+        for (db_error, expected_status) in tests {
+            let app_error = AppError::Database(db_error);
+            let (status, _, _) = app_error.get_response_parts();
+            assert_eq!(status, expected_status);
+        }
+    }
+
+    #[test]
+    fn test_automatic_conversion() {
+        // Test #[from] attribute works
+        let _: AppError = DatabaseError::NotFound("test".into()).into();
+        let _: AppError = SshError::TimeoutError("test".into()).into();
+        let _: AppError = EnvironmentError::NotFoundError("test".into()).into();
     }
 }
