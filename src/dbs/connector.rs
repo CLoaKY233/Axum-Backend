@@ -1,5 +1,5 @@
 use super::models::{DbConfig, DbConnection};
-use crate::sys::env;
+
 use err::DatabaseError;
 use std::sync::Arc;
 use surrealdb::opt::auth::Namespace;

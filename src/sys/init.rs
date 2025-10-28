@@ -3,10 +3,10 @@ use crate::{
     init_tracing,
     sys::{
         config::{server::ServerConfig, state::AppState},
-        env,
         health::create_health_checkers,
     },
 };
+
 use axum::Router;
 use err::AppError;
 use std::sync::Arc;

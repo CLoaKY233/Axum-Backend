@@ -1,3 +1,4 @@
+use super::EnvResult;
 use err::EnvironmentError;
 use std::{env, str::FromStr};
 use tracing::debug;
@@ -7,7 +8,7 @@ use tracing::debug;
 /// # Errors
 ///
 /// Returns `EnvironmentError::NotFoundError` if the variable is not set.
-pub fn get_required(key: &str) -> Result<String, EnvironmentError> {
+pub fn get_required(key: &str) -> EnvResult<String> {
     env::var(key).map_err(|_| {
         debug!(key = %key, "Environment variable not found");
         EnvironmentError::NotFoundError(key.to_string())
@@ -39,7 +40,7 @@ pub fn get_or_default(key: &str, default: &str) -> String {
 ///
 /// - `EnvironmentError::NotFoundError` if the variable is not set
 /// - `EnvironmentError::Parse` if the variable cannot be parsed
-pub fn get_parsed<T>(key: &str) -> Result<T, EnvironmentError>
+pub fn get_parsed<T>(key: &str) -> EnvResult<T>
 where
     T: FromStr,
 {
