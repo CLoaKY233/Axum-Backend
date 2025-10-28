@@ -1,5 +1,4 @@
 use super::models::{ConnectionStatus, SshCredentials};
-use crate::sys::env;
 use err::{AppResult, SshError};
 use std::{
     net::{TcpStream, ToSocketAddrs},

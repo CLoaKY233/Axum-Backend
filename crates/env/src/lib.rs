@@ -2,4 +2,4 @@ mod loader;
 pub use err::EnvironmentError;
 pub use loader::{get_bool, get_or_default, get_parsed, get_parsed_or_default, get_required};
 
-pub type Result<T> = std::result::Result<T, EnvironmentError>;
+pub type EnvResult<T> = std::result::Result<T, EnvironmentError>;

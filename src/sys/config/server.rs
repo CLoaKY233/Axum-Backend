@@ -1,5 +1,3 @@
-use crate::sys::env;
-
 #[derive(Clone)]
 pub struct ServerConfig {
     pub host: String,

@@ -1,5 +1,3 @@
-use crate::sys::env;
-
 use super::models::{LogConfig, LogFormat};
 
 impl LogFormat {
