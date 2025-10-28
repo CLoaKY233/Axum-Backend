@@ -1,40 +1,86 @@
-use crate::sys::{
-    config::state::AppState,
-    health::{ComponentHealth, HealthStatus, SystemHealthResponse},
-};
+use crate::sys::config::state::AppState;
 use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
-use futures::future::join_all;
+use hlt::HealthStatus;
 use std::sync::Arc;
+use tracing::{debug, warn};
 
-/// Aggregates the health of all system components.
+/// Axum handler for health check endpoints.
+///
+/// Returns the aggregated health status of all registered components.
+///
+/// # HTTP Status Codes
+///
+/// - `200 OK` - System is healthy or degraded
+/// - `503 Service Unavailable` - System is unhealthy
 pub async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let check_futures = state.health_checkers.iter().map(|checker| checker.check());
+    // Extract the registry from AppState and call check_all
+    let response = state.health_registry.check_all().await;
 
-    let results: Vec<ComponentHealth> = join_all(check_futures).await;
-
-    let overall_status = if results
-        .iter()
-        .any(|r| matches!(r.status, HealthStatus::Unhealthy))
-    {
-        HealthStatus::Unhealthy
-    } else if results
-        .iter()
-        .any(|r| matches!(r.status, HealthStatus::Degraded))
-    {
-        HealthStatus::Degraded
-    } else {
-        HealthStatus::Healthy
-    };
-
-    let http_status = match overall_status {
-        HealthStatus::Healthy | HealthStatus::Degraded => StatusCode::OK,
-        HealthStatus::Unhealthy => StatusCode::SERVICE_UNAVAILABLE,
-    };
-    let response = SystemHealthResponse {
-        status: overall_status,
-        components: results,
-        timestamp: chrono::Utc::now().timestamp(),
+    let http_status = match response.status {
+        HealthStatus::Healthy => {
+            debug!("Health check: all components healthy");
+            StatusCode::OK
+        }
+        HealthStatus::Degraded => {
+            warn!("Health check: system degraded");
+            StatusCode::OK
+        }
+        HealthStatus::Unhealthy => {
+            warn!("Health check: system unhealthy");
+            StatusCode::SERVICE_UNAVAILABLE
+        }
     };
 
     (http_status, Json(response))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hlt::{ComponentHealth, HealthCheck, HealthRegistry, HealthStatus};
+
+    struct MockChecker {
+        status: HealthStatus,
+    }
+
+    #[async_trait::async_trait]
+    impl HealthCheck for MockChecker {
+        async fn check(&self) -> ComponentHealth {
+            ComponentHealth {
+                name: "Mock".to_string(),
+                status: self.status.clone(),
+                message: None,
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_health_registry_directly() {
+        // Test the registry logic directly without Axum state
+        let mut registry = HealthRegistry::new();
+        registry.register(Box::new(MockChecker {
+            status: HealthStatus::Healthy,
+        }));
+
+        let response = registry.check_all().await;
+        assert_eq!(response.status, HealthStatus::Healthy);
+    }
+
+    #[tokio::test]
+    async fn test_health_status_mapping() {
+        // Test status code logic without full handler
+        let healthy = HealthStatus::Healthy;
+        let status = match healthy {
+            HealthStatus::Healthy | HealthStatus::Degraded => StatusCode::OK,
+            HealthStatus::Unhealthy => StatusCode::SERVICE_UNAVAILABLE,
+        };
+        assert_eq!(status, StatusCode::OK);
+
+        let unhealthy = HealthStatus::Unhealthy;
+        let status = match unhealthy {
+            HealthStatus::Healthy | HealthStatus::Degraded => StatusCode::OK,
+            HealthStatus::Unhealthy => StatusCode::SERVICE_UNAVAILABLE,
+        };
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    }
 }

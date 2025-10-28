@@ -1,14 +1,12 @@
+use crate::dbs::Database;
 use crate::{
     dbs::{DbConfig, DbConnection, connect},
     init_tracing,
-    sys::{
-        config::{server::ServerConfig, state::AppState},
-        health::create_health_checkers,
-    },
+    sys::config::{server::ServerConfig, state::AppState},
 };
-
 use axum::Router;
 use err::AppError;
+use hlt::HealthRegistry;
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
 use tower_http::trace::TraceLayer;
@@ -125,13 +123,16 @@ pub async fn initialize() -> Result<
     // Load database connection
     let connection = load_database().await?;
 
-    // Create health checkers
-    let health_checkers = Arc::new(create_health_checkers(connection.clone()));
+    // Create health registry
+    let mut health_registry = HealthRegistry::new();
+    health_registry.register(Box::new(Database {
+        db: connection.clone(),
+    }));
 
-    // Create application state
+    // Update AppState
     let state = Arc::new(AppState {
         db_connection: connection,
-        health_checkers,
+        health_registry: Arc::new(health_registry),
     });
 
     // Load router with state
