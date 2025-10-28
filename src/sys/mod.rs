@@ -4,6 +4,5 @@ pub mod health;
 pub mod init;
 pub mod log;
 
-pub use env::EnvironmentError;
 pub use init::initialize;
 pub use log::init_tracing;

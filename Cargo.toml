@@ -1,8 +1,40 @@
+[package]
+name = "axum_backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Workspace dependencies
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+
+# Our error crate
+err.workspace = true
+
+# Other dependencies
+async-trait = "0.1.89"
+chrono = "0.4.42"
+dotenvy = "0.15.7"
+futures = "0.3.31"
+ssh2 = "0.9.5"
+surrealdb = "2.3.10"
+tower-http = { version = "0.6.6", features = ["trace", "request-id"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "json"] }
+
+
+
+
+
+
 [workspace]
 resolver = "2"
 members = [
     "crates/err",
 ]
+
 
 # Shared dependencies across all crates
 [workspace.dependencies]
@@ -11,6 +43,11 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 tracing = "0.1.41"
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
+err = { path = "crates/err" }
+
+
+
+
 
 # Profile settings apply to entire workspace
 [profile.release]

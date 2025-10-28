@@ -1,8 +1,6 @@
-use super::{
-    error::SshError,
-    models::{ConnectionStatus, SshCredentials},
-};
-use crate::{err::AppError, sys::env};
+use super::models::{ConnectionStatus, SshCredentials};
+use crate::sys::env;
+use err::{AppResult, SshError};
 use std::{
     net::{TcpStream, ToSocketAddrs},
     time::Duration,
@@ -36,7 +34,8 @@ use tracing::{debug, error, info, instrument};
         ssh.port=%credentials.port,
     )
 )]
-pub async fn ssh_connect(credentials: &SshCredentials) -> Result<ConnectionStatus, AppError> {
+
+pub async fn ssh_connect(credentials: &SshCredentials) -> AppResult<ConnectionStatus> {
     info!("Attempting to establish SSH connection.");
 
     // Clone credentials to move them into the blocking thread.

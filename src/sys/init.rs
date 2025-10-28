@@ -1,5 +1,4 @@
 use crate::{
-    AppError,
     dbs::{DbConfig, DbConnection, connect},
     init_tracing,
     sys::{
@@ -9,6 +8,7 @@ use crate::{
     },
 };
 use axum::Router;
+use err::AppError;
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
 use tower_http::trace::TraceLayer;
