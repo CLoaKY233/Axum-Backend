@@ -1,22 +1,32 @@
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug)]
+/// SSH-specific errors.
+#[derive(Debug, Error)]
 pub enum SshError {
+    /// SSH connection failed
+    #[error("SSH connection failed: {0}")]
     ConnectionFailed(String),
+
+    /// SSH authentication failed
+    #[error("SSH authentication failed: {0}")]
     AuthenticationFailed(String),
+
+    /// Internal SSH task error
+    #[error("Internal SSH task error: {0}")]
     InternalTaskError(String),
+
+    /// SSH operation timed out
+    #[error("SSH operation timed out: {0}")]
     TimeoutError(String),
 }
 
-impl fmt::Display for SshError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::ConnectionFailed(msg) => write!(f, "SSH connection failed: {msg}"),
-            Self::AuthenticationFailed(msg) => write!(f, "SSH authentication failed: {msg}"),
-            Self::InternalTaskError(msg) => write!(f, "Internal SSH task error: {msg}"),
-            Self::TimeoutError(msg) => write!(f, "SSH operation timed out: {msg}"),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ssh_error_display() {
+        let error = SshError::ConnectionFailed("timeout".to_string());
+        assert_eq!(error.to_string(), "SSH connection failed: timeout");
     }
 }
-
-impl std::error::Error for SshError {}
