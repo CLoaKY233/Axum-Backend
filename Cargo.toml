@@ -30,10 +30,8 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter", "json"] }
 
 
 [workspace]
-resolver = "2"
-members = [
-    "crates/err",
-]
+resolver = "3"
+members = ["crates/env", "crates/err",]
 
 
 # Shared dependencies across all crates
