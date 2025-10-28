@@ -1,5 +1,6 @@
 use axum::routing::{get, post};
-use axum_backend::{AppError, health_handler, initialize, root_handler, ssh_handler};
+use axum_backend::{health_handler, initialize, root_handler, ssh_handler};
+use err::{AppError, AppResult};
 
 use tracing::error;
 
@@ -9,7 +10,7 @@ use tracing::error;
 ///
 /// Returns `AppError` if initialization or server execution fails.
 #[tokio::main]
-async fn main() -> Result<(), AppError> {
+async fn main() -> AppResult<()> {
     let (app, state, listener) = initialize().await?;
 
     // Add routes to the router

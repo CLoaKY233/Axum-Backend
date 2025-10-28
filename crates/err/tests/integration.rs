@@ -1,9 +1,9 @@
 use axum::response::IntoResponse;
-use err::{AppError, DatabaseError, EnvironmentError, Result, SshError};
+use err::{AppError, AppResult, DatabaseError, EnvironmentError, SshError};
 
 #[test]
 fn test_result_type_alias() {
-    fn example_function(should_fail: bool) -> Result<String> {
+    fn example_function(should_fail: bool) -> AppResult<String> {
         if should_fail {
             Err(DatabaseError::NotFound("test".into()).into())
         } else {
@@ -21,11 +21,11 @@ fn test_result_type_alias() {
 
 #[test]
 fn test_error_propagation_with_question_mark() {
-    fn inner_function() -> Result<()> {
+    fn inner_function() -> AppResult<()> {
         Err(DatabaseError::NotFound("user".into()).into())
     }
 
-    fn outer_function() -> Result<String> {
+    fn outer_function() -> AppResult<String> {
         inner_function()?; // Error propagates automatically
         Ok("success".to_string())
     }

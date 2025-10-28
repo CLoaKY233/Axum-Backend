@@ -5,4 +5,4 @@ mod domain;
 pub use app_error::AppError;
 pub use domain::{DatabaseError, EnvironmentError, SshError};
 
-pub type Result<T> = std::result::Result<T, AppError>;
+pub type AppResult<T> = std::result::Result<T, AppError>;

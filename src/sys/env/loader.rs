@@ -1,4 +1,4 @@
-use super::error::EnvironmentError;
+use err::EnvironmentError;
 use std::{env, str::FromStr};
 use tracing::debug;
 

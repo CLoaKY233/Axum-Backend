@@ -32,7 +32,7 @@ impl fmt::Debug for DbConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dbs::error::DatabaseError;
+    use err::DatabaseError;
     use std::env as std_env;
 
     // Helper to set environment variables
