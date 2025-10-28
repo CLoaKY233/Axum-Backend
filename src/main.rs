@@ -1,7 +1,6 @@
 use axum::routing::{get, post};
 use axum_backend::{health_handler, initialize, root_handler, ssh_handler};
 use err::{AppError, AppResult};
-
 use tracing::error;
 
 /// Initializes and runs the application.

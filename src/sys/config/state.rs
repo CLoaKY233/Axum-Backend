@@ -1,8 +1,9 @@
-use crate::{dbs::DbConnection, sys::health::HealthCheck};
+use crate::dbs::DbConnection;
+use hlt::HealthRegistry;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db_connection: DbConnection,
-    pub health_checkers: Arc<Vec<Box<dyn HealthCheck>>>,
+    pub health_registry: Arc<HealthRegistry>,
 }
