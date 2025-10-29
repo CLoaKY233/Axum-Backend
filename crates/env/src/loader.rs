@@ -95,7 +95,7 @@ pub fn get_bool(key: &str, default: bool) -> bool {
             _ => {
                 debug!(
                     key = %key,
-                    value = %v,
+                    // value = %v,
                     "Invalid boolean value, using default"
                 );
                 None
@@ -127,7 +127,7 @@ mod tests {
 
     impl Drop for EnvVarGuard {
         fn drop(&mut self) {
-            // The mutex is held for the lifetime of the guard, so this is safe.
+            // The caller holds ENV_MUTEX while this guard exists, so cleanup is safe.
             unsafe {
                 std::env::remove_var(&self.key);
             }
