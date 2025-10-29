@@ -8,7 +8,7 @@ use tracing::{debug, instrument};
 /// methods to execute them concurrently and aggregate their results.
 #[derive(Default)]
 pub struct HealthRegistry {
-    checkers: Vec<Box<dyn HealthCheck>>,
+    checkers: Vec<Box<dyn HealthCheck + Send + Sync>>,
 }
 
 impl HealthRegistry {
@@ -21,7 +21,7 @@ impl HealthRegistry {
     }
 
     /// Registers a new health checker.
-    pub fn register(&mut self, checker: Box<dyn HealthCheck>) {
+    pub fn register(&mut self, checker: Box<dyn HealthCheck + Send + Sync>) {
         self.checkers.push(checker);
     }
 
