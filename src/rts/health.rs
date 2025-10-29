@@ -37,7 +37,8 @@ pub async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResp
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hlt::{ComponentHealth, HealthCheck, HealthRegistry, HealthStatus};
+    use hlt::{ComponentHealth, HealthCheck, HealthRegistry};
+    use std::time::Duration;
 
     struct MockChecker {
         status: HealthStatus,
@@ -52,11 +53,14 @@ mod tests {
                 message: None,
             }
         }
+
+        fn timeout(&self) -> Duration {
+            Duration::from_secs(5)
+        }
     }
 
     #[tokio::test]
     async fn test_health_registry_directly() {
-        // Test the registry logic directly without Axum state
         let mut registry = HealthRegistry::new();
         registry.register(Box::new(MockChecker {
             status: HealthStatus::Healthy,
@@ -68,7 +72,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_status_mapping() {
-        // Test status code logic without full handler
         let healthy = HealthStatus::Healthy;
         let status = match healthy {
             HealthStatus::Healthy | HealthStatus::Degraded => StatusCode::OK,
@@ -82,5 +85,35 @@ mod tests {
             HealthStatus::Unhealthy => StatusCode::SERVICE_UNAVAILABLE,
         };
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn test_health_registry_with_multiple_statuses() {
+        let mut registry = HealthRegistry::new();
+
+        registry.register(Box::new(MockChecker {
+            status: HealthStatus::Healthy,
+        }));
+
+        registry.register(Box::new(MockChecker {
+            status: HealthStatus::Degraded,
+        }));
+
+        let response = registry.check_all().await;
+        assert_eq!(response.status, HealthStatus::Degraded);
+        assert_eq!(response.components.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_health_registry_with_unhealthy() {
+        let mut registry = HealthRegistry::new();
+
+        registry.register(Box::new(MockChecker {
+            status: HealthStatus::Unhealthy,
+        }));
+
+        let response = registry.check_all().await;
+        assert_eq!(response.status, HealthStatus::Unhealthy);
+        assert_eq!(response.components.len(), 1);
     }
 }
