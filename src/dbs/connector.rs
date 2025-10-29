@@ -6,7 +6,7 @@ use surrealdb::opt::auth::Namespace;
 
 /// Establishes a connection to the `SurrealDB` database.
 /// # Errors
-/// Returns `DatabaseError::ConnectionError` or `DatabaseError::AuthenticationError` on failure.
+/// Returns `EnvironmentError::NotFoundError` if any required environment variable is missing.
 pub async fn connect(config: &DbConfig) -> Result<DbConnection, DatabaseError> {
     let db = surrealdb::engine::any::connect(&config.endpoint)
         .await
