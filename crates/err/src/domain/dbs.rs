@@ -1,25 +1,30 @@
+//! # Database Errors
+//!
+//! Defines the `DatabaseError` enum, which represents errors related to
+//! database operations.
+
 use thiserror::Error;
 
 /// Database-specific errors.
 #[derive(Debug, Error)]
 pub enum DatabaseError {
-    /// Failed to connect to database
+    /// A failure to connect to the database.
     #[error("Database connection error: {0}")]
     ConnectionError(String),
 
-    /// Query execution failed
+    /// An error executing a database query.
     #[error("Database query error: {0}")]
     QueryError(String),
 
-    /// Authentication failed
+    /// A database authentication failure.
     #[error("Database authentication error: {0}")]
     AuthenticationError(String),
 
-    /// Resource not found in database
+    /// A requested resource was not found in the database.
     #[error("Resource not found: {0}")]
     NotFound(String),
 
-    /// Database configuration error
+    /// A database configuration error.
     #[error("Database configuration error: {0}")]
     ConfigError(String),
 }

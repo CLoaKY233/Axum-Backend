@@ -1,19 +1,20 @@
+//! # Health Check Registry
+//!
+//! Manages and executes a collection of health checks.
+
 use crate::{ComponentHealth, HealthCheck, SystemHealthResponse};
 use futures::future::join_all;
 use tokio::time::timeout;
 use tracing::{debug, instrument, warn};
 
-/// Registry for managing and executing health checks.
-///
-/// The registry maintains a collection of health checkers and provides
-/// methods to execute them concurrently and aggregate their results.
+/// A registry for managing and executing health checks.
 #[derive(Default)]
 pub struct HealthRegistry {
     checkers: Vec<Box<dyn HealthCheck + Send + Sync>>,
 }
 
 impl HealthRegistry {
-    /// Creates a new empty health registry.
+    /// Creates a new, empty health registry.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -26,10 +27,7 @@ impl HealthRegistry {
         self.checkers.push(checker);
     }
 
-    /// Executes all registered health checks concurrently with timeouts.
-    ///
-    /// Returns an aggregated system health response containing all component
-    /// statuses and the overall system health.
+    /// Executes all registered health checks concurrently.
     #[instrument(name = "health_check_all", skip(self))]
     pub async fn check_all(&self) -> SystemHealthResponse {
         debug!(

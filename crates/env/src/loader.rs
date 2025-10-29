@@ -1,3 +1,5 @@
+//! Loads and parses environment variables.
+
 use super::EnvResult;
 use err::EnvironmentError;
 use std::{env, str::FromStr};
@@ -16,8 +18,6 @@ pub fn get_required(key: &str) -> EnvResult<String> {
 }
 
 /// Retrieves an optional environment variable with a default value.
-///
-/// Logs when using default values for debugging purposes.
 #[must_use]
 pub fn get_or_default(key: &str, default: &str) -> String {
     env::var(key).unwrap_or_else(|_| {
