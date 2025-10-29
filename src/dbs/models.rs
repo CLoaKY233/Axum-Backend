@@ -32,7 +32,6 @@ impl fmt::Debug for DbConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use err::DatabaseError;
     use std::env as std_env;
 
     // Helper to set environment variables
@@ -77,10 +76,8 @@ mod tests {
 
     #[test]
     fn test_dbconfig_from_env_missing_variable() {
-        // Description: Validates that `DbConfig::from_env` returns a `ConfigError`
-        // if a required environment variable is missing.
-        // Reasoning: Ensures the application provides a clear error message on
-        // misconfiguration instead of panicking.
+        use err::EnvironmentError;
+
         clear_db_env(); // Ensure all vars are unset
 
         unsafe {
@@ -94,7 +91,10 @@ mod tests {
         let result = DbConfig::from_env();
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), DatabaseError::ConfigError(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            EnvironmentError::NotFoundError(_)
+        ));
 
         clear_db_env();
     }

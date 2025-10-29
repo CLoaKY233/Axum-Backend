@@ -136,12 +136,6 @@ impl AppError {
     }
 }
 
-impl From<std::env::VarError> for AppError {
-    fn from(err: std::env::VarError) -> Self {
-        Self::ServerError(format!("Environment variable error: {err}"))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

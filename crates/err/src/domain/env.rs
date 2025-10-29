@@ -1,14 +1,15 @@
+use std::fmt;
 use thiserror::Error;
 
 /// Environment configuration errors.
-#[derive(Debug, Error)]
+#[derive(Error)]
 pub enum EnvironmentError {
     /// Environment variable not found
     #[error("Environment variable '{0}' is not set")]
     NotFoundError(String),
 
     /// Failed to parse environment variable
-    #[error("Failed to parse '{key}={value}' as {type_name}")]
+    #[error("Failed to parse '{key}' as {type_name}")]
     Parse {
         /// The environment variable key
         key: String,
@@ -17,6 +18,24 @@ pub enum EnvironmentError {
         /// The expected type name
         type_name: &'static str,
     },
+}
+
+impl fmt::Debug for EnvironmentError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NotFoundError(key) => f.debug_tuple("NotFoundError").field(key).finish(),
+            Self::Parse {
+                key,
+                value: _,
+                type_name,
+            } => f
+                .debug_struct("Parse")
+                .field("key", key)
+                .field("value", &"[REDACTED]")
+                .field("type_name", type_name)
+                .finish(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -39,6 +58,6 @@ mod tests {
             value: "invalid".to_string(),
             type_name: "u16",
         };
-        assert_eq!(error.to_string(), "Failed to parse 'PORT=invalid' as u16");
+        assert_eq!(error.to_string(), "Failed to parse 'PORT' as u16");
     }
 }

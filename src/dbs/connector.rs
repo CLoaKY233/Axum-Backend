@@ -1,6 +1,6 @@
 use super::models::{DbConfig, DbConnection};
 
-use err::DatabaseError;
+use err::{DatabaseError, EnvironmentError};
 use std::sync::Arc;
 use surrealdb::opt::auth::Namespace;
 
@@ -32,22 +32,13 @@ impl DbConfig {
     /// Creates a database configuration from environment variables.
     /// # Errors
     /// Returns `DatabaseError::ConfigError` if any required environment variable is not set.
-    pub fn from_env() -> Result<Self, DatabaseError> {
+    pub fn from_env() -> Result<Self, EnvironmentError> {
         Ok(Self {
-            endpoint: env::get_required("DB_ENDPOINT")
-                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
-
-            namespace: env::get_required("DB_NAMESPACE")
-                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
-
-            database: env::get_required("DB_NAME")
-                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
-
-            username: env::get_required("DB_USERNAME")
-                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
-
-            password: env::get_required("DB_PASSWORD")
-                .map_err(|e| DatabaseError::ConfigError(e.to_string()))?,
+            endpoint: env::get_required("DB_ENDPOINT")?, // EnvironmentError
+            namespace: env::get_required("DB_NAMESPACE")?,
+            database: env::get_required("DB_NAME")?,
+            username: env::get_required("DB_USERNAME")?,
+            password: env::get_required("DB_PASSWORD")?,
         })
     }
 }

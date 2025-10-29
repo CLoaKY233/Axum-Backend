@@ -48,7 +48,7 @@ where
     value.parse::<T>().map_err(|_| {
         debug!(
             key=%key,
-            value = %value,
+            // value = %value,
             type_name=std::any::type_name::<T>(),
             "Failed to parse environment variable"
         );
