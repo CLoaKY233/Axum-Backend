@@ -1,6 +1,7 @@
 use crate::{ComponentHealth, HealthCheck, SystemHealthResponse};
 use futures::future::join_all;
-use tracing::{debug, instrument};
+use tokio::time::timeout;
+use tracing::{debug, instrument, warn};
 
 /// Registry for managing and executing health checks.
 ///
@@ -25,7 +26,7 @@ impl HealthRegistry {
         self.checkers.push(checker);
     }
 
-    /// Executes all registered health checks concurrently.
+    /// Executes all registered health checks concurrently with timeouts.
     ///
     /// Returns an aggregated system health response containing all component
     /// statuses and the overall system health.
@@ -36,7 +37,24 @@ impl HealthRegistry {
             "Executing health checks"
         );
 
-        let check_futures = self.checkers.iter().map(|checker| checker.check());
+        let check_futures = self.checkers.iter().map(|checker| {
+            let timeout_duration = checker.timeout();
+            async move {
+                timeout(timeout_duration, checker.check())
+                    .await
+                    .unwrap_or_else(|_| {
+                        warn!(
+                            timeout_secs = timeout_duration.as_secs(),
+                            "Health check timed out"
+                        );
+                        ComponentHealth::unhealthy(
+                            "Unknown",
+                            format!("Health check timed out after {timeout_duration:?}"),
+                        )
+                    })
+            }
+        });
+
         let components: Vec<ComponentHealth> = join_all(check_futures).await;
 
         debug!(
@@ -64,10 +82,11 @@ impl HealthRegistry {
 mod tests {
     use super::*;
     use crate::HealthStatus;
-
+    use std::time::Duration;
     struct MockHealthChecker {
         name: String,
         status: HealthStatus,
+        timeout_duration: Duration,
     }
 
     #[async_trait::async_trait]
@@ -78,6 +97,10 @@ mod tests {
                 status: self.status.clone(),
                 message: None,
             }
+        }
+
+        fn timeout(&self) -> Duration {
+            self.timeout_duration
         }
     }
 
@@ -95,6 +118,7 @@ mod tests {
         registry.register(Box::new(MockHealthChecker {
             name: "Test1".to_string(),
             status: HealthStatus::Healthy,
+            timeout_duration: Duration::from_secs(5),
         }));
 
         assert_eq!(registry.count(), 1);
@@ -103,6 +127,7 @@ mod tests {
         registry.register(Box::new(MockHealthChecker {
             name: "Test2".to_string(),
             status: HealthStatus::Degraded,
+            timeout_duration: Duration::from_secs(3),
         }));
 
         assert_eq!(registry.count(), 2);
@@ -124,11 +149,13 @@ mod tests {
         registry.register(Box::new(MockHealthChecker {
             name: "DB".to_string(),
             status: HealthStatus::Healthy,
+            timeout_duration: Duration::from_secs(5),
         }));
 
         registry.register(Box::new(MockHealthChecker {
             name: "Cache".to_string(),
             status: HealthStatus::Healthy,
+            timeout_duration: Duration::from_secs(3),
         }));
 
         let response = registry.check_all().await;
@@ -144,11 +171,13 @@ mod tests {
         registry.register(Box::new(MockHealthChecker {
             name: "DB".to_string(),
             status: HealthStatus::Healthy,
+            timeout_duration: Duration::from_secs(5),
         }));
 
         registry.register(Box::new(MockHealthChecker {
             name: "Cache".to_string(),
             status: HealthStatus::Degraded,
+            timeout_duration: Duration::from_secs(3),
         }));
 
         let response = registry.check_all().await;
@@ -164,16 +193,47 @@ mod tests {
         registry.register(Box::new(MockHealthChecker {
             name: "DB".to_string(),
             status: HealthStatus::Unhealthy,
+            timeout_duration: Duration::from_secs(5),
         }));
 
         registry.register(Box::new(MockHealthChecker {
             name: "Cache".to_string(),
             status: HealthStatus::Healthy,
+            timeout_duration: Duration::from_secs(3),
         }));
 
         let response = registry.check_all().await;
 
         assert_eq!(response.status, HealthStatus::Unhealthy);
         assert_eq!(response.components.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_health_check_timeout() {
+        struct SlowChecker;
+
+        #[async_trait::async_trait]
+        impl HealthCheck for SlowChecker {
+            async fn check(&self) -> ComponentHealth {
+                tokio::time::sleep(Duration::from_secs(10)).await;
+                ComponentHealth::healthy("SlowDB")
+            }
+
+            fn timeout(&self) -> Duration {
+                Duration::from_millis(100) // Very short timeout
+            }
+        }
+
+        let mut registry = HealthRegistry::new();
+        registry.register(Box::new(SlowChecker));
+
+        let response = registry.check_all().await;
+
+        assert_eq!(response.status, HealthStatus::Unhealthy);
+        assert_eq!(response.components.len(), 1);
+
+        let component = &response.components[0];
+        assert_eq!(component.status, HealthStatus::Unhealthy);
+        assert!(component.message.as_ref().unwrap().contains("timed out"));
     }
 }

@@ -18,6 +18,10 @@ impl HealthCheck for DatabaseHealth {
             ComponentHealth::healthy("Database")
         }
     }
+
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(5)
+    }
 }
 
 // Mock cache health checker
@@ -35,6 +39,10 @@ impl HealthCheck for CacheHealth {
         } else {
             ComponentHealth::healthy("Cache")
         }
+    }
+
+    fn timeout(&self) -> Duration {
+        Duration::from_secs(3)
     }
 }
 
@@ -183,4 +191,81 @@ async fn test_thread_safety() {
     for handle in handles {
         handle.await.unwrap();
     }
+}
+
+#[tokio::test]
+async fn test_timeout_enforcement() {
+    struct TimeoutChecker {
+        delay: Duration,
+        timeout_duration: Duration,
+    }
+
+    #[async_trait::async_trait]
+    impl HealthCheck for TimeoutChecker {
+        async fn check(&self) -> ComponentHealth {
+            sleep(self.delay).await;
+            ComponentHealth::healthy("TimeoutTest")
+        }
+
+        fn timeout(&self) -> Duration {
+            self.timeout_duration
+        }
+    }
+
+    let mut registry = HealthRegistry::new();
+
+    // This checker will timeout
+    registry.register(Box::new(TimeoutChecker {
+        delay: Duration::from_secs(2),
+        timeout_duration: Duration::from_millis(100),
+    }));
+
+    let response = registry.check_all().await;
+
+    assert_eq!(response.status, HealthStatus::Unhealthy);
+    assert_eq!(response.components.len(), 1);
+
+    let component = &response.components[0];
+    assert_eq!(component.status, HealthStatus::Unhealthy);
+    assert!(component.message.as_ref().unwrap().contains("timed out"));
+}
+
+#[tokio::test]
+async fn test_different_timeouts_per_component() {
+    struct FastChecker;
+
+    #[async_trait::async_trait]
+    impl HealthCheck for FastChecker {
+        async fn check(&self) -> ComponentHealth {
+            sleep(Duration::from_millis(10)).await;
+            ComponentHealth::healthy("Fast")
+        }
+
+        fn timeout(&self) -> Duration {
+            Duration::from_millis(50)
+        }
+    }
+
+    struct SlowChecker;
+
+    #[async_trait::async_trait]
+    impl HealthCheck for SlowChecker {
+        async fn check(&self) -> ComponentHealth {
+            sleep(Duration::from_millis(100)).await;
+            ComponentHealth::healthy("Slow")
+        }
+
+        fn timeout(&self) -> Duration {
+            Duration::from_secs(1)
+        }
+    }
+
+    let mut registry = HealthRegistry::new();
+    registry.register(Box::new(FastChecker));
+    registry.register(Box::new(SlowChecker));
+
+    let response = registry.check_all().await;
+
+    assert_eq!(response.status, HealthStatus::Healthy);
+    assert_eq!(response.components.len(), 2);
 }
