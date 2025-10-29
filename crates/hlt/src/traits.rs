@@ -1,21 +1,18 @@
+//! # Health Check Trait
+//!
+//! Defines the `HealthCheck` trait, which is the core of the health check
+//! framework.
+
 use crate::ComponentHealth;
 use std::time::Duration;
 
-/// Trait for implementing health checks on system components.
-///
-/// Implement this trait for any component that needs health monitoring.
+/// A trait for implementing asynchronous health checks.
 #[async_trait::async_trait]
 pub trait HealthCheck: Send + Sync {
-    /// Performs the health check and returns the component's health status.
-    ///
-    /// This method should be non-blocking and complete quickly.
+    /// Performs the health check.
     async fn check(&self) -> ComponentHealth;
 
-    /// Returns the timeout duration for this health check.
-    ///
-    /// Each component must specify its own timeout based on its expected
-    /// response time. This ensures checks fail fast if components
-    /// are unresponsive
+    /// Returns the timeout for the health check.
     fn timeout(&self) -> Duration;
 }
 

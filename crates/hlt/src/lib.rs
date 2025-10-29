@@ -1,6 +1,6 @@
-//! # hlt - Health Check Framework
+//! # Health Check Framework
 //!
-//! A lightweight, extensible health check framework with Axum integration.
+//! A lightweight and extensible health check framework for Axum applications.
 
 mod models;
 mod registry;

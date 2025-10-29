@@ -1,25 +1,29 @@
+//! # Health Check Models
+//!
+//! Defines the data structures used for health checking.
+
 use serde::Serialize;
 
-/// Health status levels for components and systems.
+/// The health status of a component.
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum HealthStatus {
-    /// All systems operational
+    /// The component is healthy.
     Healthy,
-    /// Some non-critical issues detected
+    /// The component is in a degraded state.
     Degraded,
-    /// Critical failures present
+    /// The component is unhealthy.
     Unhealthy,
 }
 
-/// Health information for a single component.
+/// The health of a single component.
 #[derive(Serialize, Debug, Clone)]
 pub struct ComponentHealth {
-    /// Component name (e.g., "Database", "Cache")
+    /// The name of the component.
     pub name: String,
-    /// Current health status
+    /// The health status of the component.
     pub status: HealthStatus,
-    /// Optional diagnostic message
+    /// An optional message with more details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
 }
@@ -56,14 +60,14 @@ impl ComponentHealth {
     }
 }
 
-/// Aggregated health response for the entire system.
+/// The overall health response for the system.
 #[derive(Serialize, Debug)]
 pub struct SystemHealthResponse {
-    /// Overall system health status
+    /// The overall system health status.
     pub status: HealthStatus,
-    /// Individual component health statuses
+    /// The health of individual components.
     pub components: Vec<ComponentHealth>,
-    /// Unix timestamp of the health check
+    /// The timestamp of the health check.
     pub timestamp: i64,
 }
 
@@ -82,11 +86,6 @@ impl SystemHealthResponse {
     }
 
     /// Aggregates component statuses into a system-wide status.
-    ///
-    /// Logic:
-    /// - If any component is Unhealthy → System is Unhealthy
-    /// - Else if any component is Degraded → System is Degraded
-    /// - Otherwise → System is Healthy
     fn aggregate_status(components: &[ComponentHealth]) -> HealthStatus {
         if components
             .iter()

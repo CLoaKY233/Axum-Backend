@@ -1,3 +1,5 @@
+//! Defines the primary `AppError` and its `IntoResponse` implementation.
+
 use super::domain::{DatabaseError, EnvironmentError, SshError};
 use axum::{
     Json,
@@ -8,25 +10,26 @@ use serde_json::json;
 use thiserror::Error;
 use tracing::error;
 
+/// The unified error type for the application.
 #[derive(Debug, Error)]
 pub enum AppError {
-    /// Database-related errors
+    /// Database-related errors.
     #[error("Database error: {0}")]
     Database(#[from] DatabaseError),
 
-    /// SSH connection/operation errors
+    /// SSH connection/operation errors.
     #[error("SSH error: {0}")]
     Ssh(#[from] SshError),
 
-    /// Environment configuration errors
+    /// Environment configuration errors.
     #[error("Environment error: {0}")]
     Environment(#[from] EnvironmentError),
 
-    /// Generic server errors
+    /// Generic server errors.
     #[error("Server error: {0}")]
     ServerError(String),
 
-    /// Server binding errors
+    /// Server binding errors.
     #[error("Bind error: {0}")]
     BindError(String),
 }
@@ -58,9 +61,7 @@ impl IntoResponse for AppError {
 }
 
 impl AppError {
-    /// Extract HTTP response components from error.
-    ///
-    /// Returns `(StatusCode, error_type, user_message)` tuple.
+    /// Returns the appropriate HTTP status code and error details for the client.
     #[inline]
     fn get_response_parts(&self) -> (StatusCode, &'static str, &'static str) {
         match self {

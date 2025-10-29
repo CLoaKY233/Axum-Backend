@@ -1,21 +1,26 @@
+//! # SSH Errors
+//!
+//! Defines the `SshError` enum, which represents errors related to SSH
+//! operations.
+
 use thiserror::Error;
 
 /// SSH-specific errors.
 #[derive(Debug, Error)]
 pub enum SshError {
-    /// SSH connection failed
+    /// An SSH connection failed to establish.
     #[error("SSH connection failed: {0}")]
     ConnectionFailed(String),
 
-    /// SSH authentication failed
+    /// SSH authentication failed.
     #[error("SSH authentication failed: {0}")]
     AuthenticationFailed(String),
 
-    /// Internal SSH task error
+    /// An error occurred during an SSH task.
     #[error("Internal SSH task error: {0}")]
     InternalTaskError(String),
 
-    /// SSH operation timed out
+    /// An SSH operation timed out.
     #[error("SSH operation timed out: {0}")]
     TimeoutError(String),
 }
