@@ -27,8 +27,13 @@ pub struct ComponentHealth {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// Optional latency in milliseconds for the health check.
+    /// Typical ranges:
+    /// - < 50ms: Excellent
+    /// - 50-100ms: Good
+    /// - 100-200ms: Acceptable
+    /// - > 200ms: Should trigger degraded status
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<u128>,
+    pub latency_ms: Option<u64>,
 }
 
 impl ComponentHealth {
@@ -37,7 +42,7 @@ impl ComponentHealth {
     pub fn healthy(
         name: impl Into<String>,
         message: Option<impl Into<String>>,
-        latency_ms: Option<u128>,
+        latency_ms: Option<u64>,
     ) -> Self {
         Self {
             name: name.into(),
@@ -52,7 +57,7 @@ impl ComponentHealth {
     pub fn degraded(
         name: impl Into<String>,
         message: impl Into<String>,
-        latency_ms: Option<u128>,
+        latency_ms: Option<u64>,
     ) -> Self {
         Self {
             name: name.into(),
@@ -67,13 +72,74 @@ impl ComponentHealth {
     pub fn unhealthy(
         name: impl Into<String>,
         message: impl Into<String>,
-        latency_ms: Option<u128>,
+        latency_ms: Option<u64>,
     ) -> Self {
         Self {
             name: name.into(),
             status: HealthStatus::Unhealthy,
             message: Some(message.into()),
             latency_ms,
+        }
+    }
+
+    /// Creates a builder for constructing `ComponentHealth` with a fluent API.
+    #[must_use]
+    pub fn builder(name: impl Into<String>) -> ComponentHealthBuilder {
+        ComponentHealthBuilder::new(name)
+    }
+}
+
+/// Builder for constructing `ComponentHealth` instances with a fluent API.
+#[derive(Debug)]
+pub struct ComponentHealthBuilder {
+    name: String,
+    status: HealthStatus,
+    message: Option<String>,
+    latency_ms: Option<u64>,
+}
+
+impl ComponentHealthBuilder {
+    /// Creates a new builder with the given component name.
+    /// The default status is `Healthy`
+    #[must_use]
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            status: HealthStatus::Healthy,
+            message: None,
+            latency_ms: None,
+        }
+    }
+
+    /// Sets the health status of the component.
+    #[must_use]
+    pub fn status(mut self, status: HealthStatus) -> Self {
+        self.status = status;
+        self
+    }
+
+    // Sets an optional message with more details.
+    #[must_use]
+    pub fn message(mut self, message: impl Into<String>) -> Self {
+        self.message = Some(message.into());
+        self
+    }
+
+    /// Sets the latency in milliseconds for the health check.
+    #[must_use]
+    pub fn latency_ms(mut self, latency: u64) -> Self {
+        self.latency_ms = Some(latency);
+        self
+    }
+
+    /// Builds and returns the `ComponentHealth` instance.
+    #[must_use]
+    pub fn build(self) -> ComponentHealth {
+        ComponentHealth {
+            name: self.name,
+            status: self.status,
+            message: self.message,
+            latency_ms: self.latency_ms,
         }
     }
 }
@@ -144,6 +210,57 @@ mod tests {
         assert_eq!(unhealthy.status, HealthStatus::Unhealthy);
         assert_eq!(unhealthy.message, Some("Connection failed".to_string()));
         assert!(unhealthy.latency_ms.is_none());
+    }
+
+    #[test]
+    fn test_builder_pattern_basic() {
+        let health = ComponentHealth::builder("Database")
+            .status(HealthStatus::Healthy)
+            .latency_ms(50)
+            .build();
+
+        assert_eq!(health.name, "Database");
+        assert_eq!(health.status, HealthStatus::Healthy);
+        assert!(health.message.is_none());
+        assert_eq!(health.latency_ms, Some(50));
+    }
+
+    #[test]
+    fn test_builder_pattern_with_message() {
+        let health = ComponentHealth::builder("Cache")
+            .status(HealthStatus::Degraded)
+            .message("High latency detected")
+            .latency_ms(250)
+            .build();
+
+        assert_eq!(health.name, "Cache");
+        assert_eq!(health.status, HealthStatus::Degraded);
+        assert_eq!(health.message, Some("High latency detected".to_string()));
+        assert_eq!(health.latency_ms, Some(250));
+    }
+
+    #[test]
+    fn test_builder_pattern_minimal() {
+        let health = ComponentHealth::builder("API").build();
+
+        assert_eq!(health.name, "API");
+        assert_eq!(health.status, HealthStatus::Healthy);
+        assert!(health.message.is_none());
+        assert!(health.latency_ms.is_none());
+    }
+
+    #[test]
+    fn test_builder_pattern_unhealthy() {
+        let health = ComponentHealth::builder("Database")
+            .status(HealthStatus::Unhealthy)
+            .message("Connection refused")
+            .latency_ms(5000)
+            .build();
+
+        assert_eq!(health.name, "Database");
+        assert_eq!(health.status, HealthStatus::Unhealthy);
+        assert_eq!(health.message, Some("Connection refused".to_string()));
+        assert_eq!(health.latency_ms, Some(5000));
     }
 
     #[test]

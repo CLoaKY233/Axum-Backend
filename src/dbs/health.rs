@@ -1,43 +1,44 @@
 use crate::dbs::Database;
-use hlt::{ComponentHealth, HealthCheck};
+use hlt::{ComponentHealth, HealthCheck, HealthStatus};
 use tokio::time::{Duration, Instant};
 use tracing::{debug, warn};
 
 #[async_trait::async_trait]
 impl HealthCheck for Database {
+    #[allow(clippy::cast_possible_truncation)]
     async fn check(&self) -> ComponentHealth {
         let start = Instant::now();
         debug!("Performing database health check");
 
         match self.db.query("RETURN true;").await {
             Ok(_) => {
-                let elapsed = start.elapsed();
-                debug!(
-                    latency_ms = elapsed.as_millis(),
-                    "Database health check successful"
-                );
-                ComponentHealth::healthy("Database", None::<String>, Some(elapsed.as_millis()))
+                let elapsed = start.elapsed().as_millis() as u64;
+                debug!(latency_ms = elapsed, "Database health check successful");
+
+                // Using builder pattern for cleaner code
+                ComponentHealth::builder("Database")
+                    .status(HealthStatus::Healthy)
+                    .latency_ms(elapsed)
+                    .build()
             }
             Err(e) => {
-                let elapsed = start.elapsed();
-                warn!(
-                    error = %e,
-                    latency_ms = elapsed.as_millis(),
-                    "Database health check failed"
-                );
-                ComponentHealth::unhealthy(
-                    "Database",
-                    format!("Query error: {e}"),
-                    Some(elapsed.as_millis()),
-                )
+                let elapsed = start.elapsed().as_millis() as u64;
+                warn!(error = %e, latency_ms = elapsed, "Database health check failed");
+
+                // Builder pattern makes error cases cleaner
+                ComponentHealth::builder("Database")
+                    .status(HealthStatus::Unhealthy)
+                    .message(format!("Query error: {e}"))
+                    .latency_ms(elapsed)
+                    .build()
             }
         }
     }
 
     fn timeout(&self) -> Duration {
-        // Read timeout from environment, default to 5 seconds
         let timeout_secs = env::get_parsed_or_default("DB_HEALTH_CHECK_TIMEOUT", 5);
         Duration::from_secs(timeout_secs)
     }
 }
+
 // ADD MOCK DATABASE TESTS LATER IF NEEDED

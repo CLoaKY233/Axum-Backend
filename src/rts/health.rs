@@ -47,12 +47,9 @@ mod tests {
     #[async_trait::async_trait]
     impl HealthCheck for MockChecker {
         async fn check(&self) -> ComponentHealth {
-            ComponentHealth {
-                name: "Mock".to_string(),
-                status: self.status.clone(),
-                message: None,
-                latency_ms: None,
-            }
+            ComponentHealth::builder("Mock")
+                .status(self.status.clone())
+                .build()
         }
 
         fn timeout(&self) -> Duration {
