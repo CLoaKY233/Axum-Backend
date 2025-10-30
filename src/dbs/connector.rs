@@ -1,12 +1,13 @@
 use super::models::{DbConfig, DbConnection};
-
 use err::{DatabaseError, EnvironmentError};
 use std::sync::Arc;
 use surrealdb::opt::auth::Namespace;
 
 /// Establishes a connection to the `SurrealDB` database.
 /// # Errors
-/// Returns `EnvironmentError::NotFoundError` if any required environment variable is missing.
+/// Returns `DatabaseError::ConnectionError` if the connection to the database fails or if
+/// namespace/database selection fails.
+/// Returns `DatabaseError::AuthenticationError` if authentication with the provided credentials fails.
 pub async fn connect(config: &DbConfig) -> Result<DbConnection, DatabaseError> {
     let db = surrealdb::engine::any::connect(&config.endpoint)
         .await
