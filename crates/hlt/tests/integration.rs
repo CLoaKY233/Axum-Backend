@@ -26,7 +26,7 @@ impl HealthCheck for DatabaseHealth {
 
 // Mock cache health checker
 struct CacheHealth {
-    latency_ms: u128,
+    latency_ms: u64, // Changed from u128 to u64
 }
 
 #[async_trait::async_trait]
@@ -272,4 +272,56 @@ async fn test_different_timeouts_per_component() {
 
     assert_eq!(response.status, HealthStatus::Healthy);
     assert_eq!(response.components.len(), 2);
+}
+
+// Additional test demonstrating the builder pattern
+#[tokio::test]
+async fn test_builder_pattern_in_health_check() {
+    struct BuilderStyleChecker {
+        latency: u64,
+    }
+
+    #[async_trait::async_trait]
+    impl HealthCheck for BuilderStyleChecker {
+        async fn check(&self) -> ComponentHealth {
+            sleep(Duration::from_millis(5)).await;
+
+            // Using builder pattern for more flexibility
+            let mut builder = ComponentHealth::builder("BuilderTest").latency_ms(self.latency);
+
+            if self.latency < 100 {
+                builder = builder.status(HealthStatus::Healthy);
+            } else if self.latency < 200 {
+                builder = builder
+                    .status(HealthStatus::Degraded)
+                    .message(format!("Moderate latency: {}ms", self.latency));
+            } else {
+                builder = builder
+                    .status(HealthStatus::Unhealthy)
+                    .message(format!("High latency: {}ms", self.latency));
+            }
+
+            builder.build()
+        }
+
+        fn timeout(&self) -> Duration {
+            Duration::from_secs(5)
+        }
+    }
+
+    let mut registry = HealthRegistry::new();
+
+    registry.register(Box::new(BuilderStyleChecker { latency: 50 }));
+    let response = registry.check_all().await;
+    assert_eq!(response.status, HealthStatus::Healthy);
+
+    let mut registry = HealthRegistry::new();
+    registry.register(Box::new(BuilderStyleChecker { latency: 150 }));
+    let response = registry.check_all().await;
+    assert_eq!(response.status, HealthStatus::Degraded);
+
+    let mut registry = HealthRegistry::new();
+    registry.register(Box::new(BuilderStyleChecker { latency: 250 }));
+    let response = registry.check_all().await;
+    assert_eq!(response.status, HealthStatus::Unhealthy);
 }
