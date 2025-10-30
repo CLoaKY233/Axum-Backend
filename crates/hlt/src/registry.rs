@@ -48,6 +48,7 @@ impl HealthRegistry {
                         ComponentHealth::unhealthy(
                             "Unknown",
                             format!("Health check timed out after {timeout_duration:?}"),
+                            None,
                         )
                     })
             }
@@ -94,6 +95,7 @@ mod tests {
                 name: self.name.clone(),
                 status: self.status.clone(),
                 message: None,
+                latency_ms: None,
             }
         }
 
@@ -214,7 +216,7 @@ mod tests {
         impl HealthCheck for SlowChecker {
             async fn check(&self) -> ComponentHealth {
                 tokio::time::sleep(Duration::from_secs(10)).await;
-                ComponentHealth::healthy("SlowDB")
+                ComponentHealth::healthy("SlowDB", None::<String>, None)
             }
 
             fn timeout(&self) -> Duration {
