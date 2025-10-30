@@ -51,6 +51,7 @@ mod tests {
                 name: "Mock".to_string(),
                 status: self.status.clone(),
                 message: None,
+                latency_ms: None,
             }
         }
 

@@ -16,11 +16,20 @@ impl HealthCheck for Database {
                     latency_ms = elapsed.as_millis(),
                     "Database health check successful"
                 );
-                ComponentHealth::healthy("Database")
+                ComponentHealth::healthy("Database", None::<String>, Some(elapsed.as_millis()))
             }
             Err(e) => {
-                warn!(error = %e, "Database health check failed");
-                ComponentHealth::unhealthy("Database", format!("Query error: {e}"))
+                let elapsed = start.elapsed();
+                warn!(
+                    error = %e,
+                    latency_ms = elapsed.as_millis(),
+                    "Database health check failed"
+                );
+                ComponentHealth::unhealthy(
+                    "Database",
+                    format!("Query error: {e}"),
+                    Some(elapsed.as_millis()),
+                )
             }
         }
     }
@@ -31,5 +40,4 @@ impl HealthCheck for Database {
         Duration::from_secs(timeout_secs)
     }
 }
-
 // ADD MOCK DATABASE TESTS LATER IF NEEDED

@@ -26,36 +26,54 @@ pub struct ComponentHealth {
     /// An optional message with more details.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Optional latency in milliseconds for the health check.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<u128>,
 }
 
 impl ComponentHealth {
-    /// Creates a healthy component status.
+    /// Creates a healthy component status with optional message and latency.
     #[must_use]
-    pub fn healthy(name: impl Into<String>) -> Self {
+    pub fn healthy(
+        name: impl Into<String>,
+        message: Option<impl Into<String>>,
+        latency_ms: Option<u128>,
+    ) -> Self {
         Self {
             name: name.into(),
             status: HealthStatus::Healthy,
-            message: None,
+            message: message.map(Into::into),
+            latency_ms,
         }
     }
 
-    /// Creates a degraded component status with a message.
+    /// Creates a degraded component status with message and optional latency.
     #[must_use]
-    pub fn degraded(name: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn degraded(
+        name: impl Into<String>,
+        message: impl Into<String>,
+        latency_ms: Option<u128>,
+    ) -> Self {
         Self {
             name: name.into(),
             status: HealthStatus::Degraded,
             message: Some(message.into()),
+            latency_ms,
         }
     }
 
-    /// Creates an unhealthy component status with a message.
+    /// Creates an unhealthy component status with message and optional latency.
     #[must_use]
-    pub fn unhealthy(name: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn unhealthy(
+        name: impl Into<String>,
+        message: impl Into<String>,
+        latency_ms: Option<u128>,
+    ) -> Self {
         Self {
             name: name.into(),
             status: HealthStatus::Unhealthy,
             message: Some(message.into()),
+            latency_ms,
         }
     }
 }
@@ -109,27 +127,30 @@ mod tests {
 
     #[test]
     fn test_component_health_constructors() {
-        let healthy = ComponentHealth::healthy("Database");
+        let healthy = ComponentHealth::healthy("Database", None::<String>, Some(123));
         assert_eq!(healthy.name, "Database");
         assert_eq!(healthy.status, HealthStatus::Healthy);
         assert!(healthy.message.is_none());
+        assert_eq!(healthy.latency_ms, Some(123));
 
-        let degraded = ComponentHealth::degraded("Cache", "High latency");
+        let degraded = ComponentHealth::degraded("Cache", "High latency", Some(321));
         assert_eq!(degraded.name, "Cache");
         assert_eq!(degraded.status, HealthStatus::Degraded);
         assert_eq!(degraded.message, Some("High latency".to_string()));
+        assert_eq!(degraded.latency_ms, Some(321));
 
-        let unhealthy = ComponentHealth::unhealthy("API", "Connection failed");
+        let unhealthy = ComponentHealth::unhealthy("API", "Connection failed", None);
         assert_eq!(unhealthy.name, "API");
         assert_eq!(unhealthy.status, HealthStatus::Unhealthy);
         assert_eq!(unhealthy.message, Some("Connection failed".to_string()));
+        assert!(unhealthy.latency_ms.is_none());
     }
 
     #[test]
     fn test_system_health_aggregation_all_healthy() {
         let components = vec![
-            ComponentHealth::healthy("DB"),
-            ComponentHealth::healthy("Cache"),
+            ComponentHealth::healthy("DB", None::<String>, None),
+            ComponentHealth::healthy("Cache", Some("All good"), Some(50)),
         ];
 
         let response = SystemHealthResponse::new(components);
@@ -140,8 +161,8 @@ mod tests {
     #[test]
     fn test_system_health_aggregation_with_degraded() {
         let components = vec![
-            ComponentHealth::healthy("DB"),
-            ComponentHealth::degraded("Cache", "Slow"),
+            ComponentHealth::healthy("DB", None::<String>, None),
+            ComponentHealth::degraded("Cache", "Slow", None),
         ];
 
         let response = SystemHealthResponse::new(components);
@@ -151,9 +172,9 @@ mod tests {
     #[test]
     fn test_system_health_aggregation_with_unhealthy() {
         let components = vec![
-            ComponentHealth::healthy("DB"),
-            ComponentHealth::degraded("Cache", "Slow"),
-            ComponentHealth::unhealthy("API", "Down"),
+            ComponentHealth::healthy("DB", None::<String>, None),
+            ComponentHealth::degraded("Cache", "Slow", None),
+            ComponentHealth::unhealthy("API", "Down", None),
         ];
 
         let response = SystemHealthResponse::new(components);
@@ -162,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_system_health_timestamp() {
-        let components = vec![ComponentHealth::healthy("DB")];
+        let components = vec![ComponentHealth::healthy("DB", None::<String>, None)];
         let response = SystemHealthResponse::new(components);
 
         let now = chrono::Utc::now().timestamp();
@@ -179,5 +200,23 @@ mod tests {
 
         let json = serde_json::to_string(&HealthStatus::Unhealthy).unwrap();
         assert_eq!(json, "\"unhealthy\"");
+    }
+
+    #[test]
+    fn test_component_serialization_with_latency_and_message() {
+        let comp = ComponentHealth::healthy("DB", Some("OK".to_string()), Some(100));
+        let json = serde_json::to_string(&comp).unwrap();
+        assert!(json.contains(r#""message":"OK""#));
+        assert!(json.contains(r#""latency_ms":100"#));
+
+        let comp = ComponentHealth::degraded("Cache", "Slow cache", None);
+        let json = serde_json::to_string(&comp).unwrap();
+        assert!(json.contains(r#""message":"Slow cache""#));
+        assert!(!json.contains("latency_ms"));
+
+        let comp = ComponentHealth::unhealthy("API", "Down", Some(500));
+        let json = serde_json::to_string(&comp).unwrap();
+        assert!(json.contains(r#""latency_ms":500"#));
+        assert!(json.contains(r#""message":"Down""#));
     }
 }

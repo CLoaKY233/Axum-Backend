@@ -13,9 +13,9 @@ impl HealthCheck for DatabaseHealth {
         sleep(Duration::from_millis(10)).await;
 
         if self.should_fail {
-            ComponentHealth::unhealthy("Database", "Connection timeout")
+            ComponentHealth::unhealthy("Database", "Connection timeout", None)
         } else {
-            ComponentHealth::healthy("Database")
+            ComponentHealth::healthy("Database", None::<String>, None)
         }
     }
 
@@ -26,7 +26,7 @@ impl HealthCheck for DatabaseHealth {
 
 // Mock cache health checker
 struct CacheHealth {
-    latency_ms: u64,
+    latency_ms: u128,
 }
 
 #[async_trait::async_trait]
@@ -35,9 +35,13 @@ impl HealthCheck for CacheHealth {
         sleep(Duration::from_millis(5)).await;
 
         if self.latency_ms > 100 {
-            ComponentHealth::degraded("Cache", format!("High latency: {}ms", self.latency_ms))
+            ComponentHealth::degraded(
+                "Cache",
+                format!("High latency: {}ms", self.latency_ms),
+                Some(self.latency_ms),
+            )
         } else {
-            ComponentHealth::healthy("Cache")
+            ComponentHealth::healthy("Cache", None::<String>, Some(self.latency_ms))
         }
     }
 
@@ -204,7 +208,7 @@ async fn test_timeout_enforcement() {
     impl HealthCheck for TimeoutChecker {
         async fn check(&self) -> ComponentHealth {
             sleep(self.delay).await;
-            ComponentHealth::healthy("TimeoutTest")
+            ComponentHealth::healthy("TimeoutTest", None::<String>, None)
         }
 
         fn timeout(&self) -> Duration {
@@ -238,7 +242,7 @@ async fn test_different_timeouts_per_component() {
     impl HealthCheck for FastChecker {
         async fn check(&self) -> ComponentHealth {
             sleep(Duration::from_millis(10)).await;
-            ComponentHealth::healthy("Fast")
+            ComponentHealth::healthy("Fast", None::<String>, None)
         }
 
         fn timeout(&self) -> Duration {
@@ -252,7 +256,7 @@ async fn test_different_timeouts_per_component() {
     impl HealthCheck for SlowChecker {
         async fn check(&self) -> ComponentHealth {
             sleep(Duration::from_millis(100)).await;
-            ComponentHealth::healthy("Slow")
+            ComponentHealth::healthy("Slow", None::<String>, None)
         }
 
         fn timeout(&self) -> Duration {

@@ -25,7 +25,7 @@ mod tests {
     #[async_trait::async_trait]
     impl HealthCheck for MockHealthy {
         async fn check(&self) -> ComponentHealth {
-            ComponentHealth::healthy("Mock")
+            ComponentHealth::healthy("Mock", None::<String>, None)
         }
 
         fn timeout(&self) -> Duration {
@@ -38,7 +38,7 @@ mod tests {
     #[async_trait::async_trait]
     impl HealthCheck for MockUnhealthy {
         async fn check(&self) -> ComponentHealth {
-            ComponentHealth::unhealthy("Mock", "Test failure")
+            ComponentHealth::unhealthy("Mock", "Test failure", None)
         }
 
         fn timeout(&self) -> Duration {
