@@ -5,6 +5,8 @@ use tracing::{debug, warn};
 
 #[async_trait::async_trait]
 impl HealthCheck for Database {
+    // We cast u128 to u64 here because health check latencies will never exceed
+    // u64::MAX milliseconds (~584 million years). This is a safe truncation.
     #[allow(clippy::cast_possible_truncation)]
     async fn check(&self) -> ComponentHealth {
         let start = Instant::now();

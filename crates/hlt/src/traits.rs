@@ -7,12 +7,42 @@ use crate::ComponentHealth;
 use std::time::Duration;
 
 /// A trait for implementing asynchronous health checks.
+///
+/// # Example
+///
+/// ```
+/// use hlt::{ComponentHealth, HealthCheck, HealthStatus};
+/// use tokio::time::Duration;
+///
+/// struct MyServiceChecker;
+///
+/// #[async_trait::async_trait]
+/// impl HealthCheck for MyServiceChecker {
+///     async fn check(&self) -> ComponentHealth {
+///         // Your health check logic here
+///         ComponentHealth::builder("MyService")
+///             .status(HealthStatus::Healthy)
+///             .build()
+///     }
+///
+///     fn timeout(&self) -> Duration {
+///         Duration::from_secs(3)
+///     }
+/// }
+/// ```
 #[async_trait::async_trait]
 pub trait HealthCheck: Send + Sync {
-    /// Performs the health check.
+    /// Performs the health check and returns the component's health status.
+    ///
+    /// This method should perform the actual health verification logic
+    /// (e.g., database ping, HTTP request, file check) and return a
+    /// `ComponentHealth` instance with status, optional message, and latency.
     async fn check(&self) -> ComponentHealth;
 
-    /// Returns the timeout for the health check.
+    /// Returns the timeout duration for this health check.
+    ///
+    /// If the health check takes longer than this duration, it will be
+    /// cancelled and reported as unhealthy by the registry.
     fn timeout(&self) -> Duration;
 }
 
