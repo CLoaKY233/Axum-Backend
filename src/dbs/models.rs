@@ -32,10 +32,12 @@ impl fmt::Debug for DbConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env as std_env;
 
-    // Helper to set environment variables
-    fn setup_db_env() {
+    #[test]
+    #[serial]
+    fn test_dbconfig_from_env_success() {
         unsafe {
             std_env::set_var("DB_ENDPOINT", "ws://test.com");
             std_env::set_var("DB_NAMESPACE", "ns_test");
@@ -43,10 +45,15 @@ mod tests {
             std_env::set_var("DB_USERNAME", "user_test");
             std_env::set_var("DB_PASSWORD", "pass_test");
         }
-    }
 
-    // Helper to clear environment variables
-    fn clear_db_env() {
+        let config = DbConfig::from_env().expect("Should create config successfully");
+
+        assert_eq!(config.endpoint, "ws://test.com");
+        assert_eq!(config.namespace, "ns_test");
+        assert_eq!(config.database, "db_test");
+        assert_eq!(config.username, "user_test");
+        assert_eq!(config.password, "pass_test");
+
         unsafe {
             std_env::remove_var("DB_ENDPOINT");
             std_env::remove_var("DB_NAMESPACE");
@@ -57,28 +64,17 @@ mod tests {
     }
 
     #[test]
-    fn test_dbconfig_from_env_success() {
-        // Description: Validates that `DbConfig` is correctly created when all
-        // required environment variables are set.
-        // Reasoning: This is the happy path for configuration loading.
-        setup_db_env();
-
-        let config = DbConfig::from_env().expect("Should create config successfully");
-
-        assert_eq!(config.endpoint, "ws://test.com");
-        assert_eq!(config.namespace, "ns_test");
-        assert_eq!(config.database, "db_test");
-        assert_eq!(config.username, "user_test");
-        assert_eq!(config.password, "pass_test");
-
-        clear_db_env();
-    }
-
-    #[test]
+    #[serial]
     fn test_dbconfig_from_env_missing_variable() {
         use err::EnvironmentError;
 
-        clear_db_env(); // Ensure all vars are unset
+        unsafe {
+            std_env::remove_var("DB_ENDPOINT");
+            std_env::remove_var("DB_NAMESPACE");
+            std_env::remove_var("DB_NAME");
+            std_env::remove_var("DB_USERNAME");
+            std_env::remove_var("DB_PASSWORD");
+        }
 
         unsafe {
             std_env::set_var("DB_ENDPOINT", "ws://test.com");
@@ -96,7 +92,12 @@ mod tests {
             EnvironmentError::NotFoundError(_)
         ));
 
-        clear_db_env();
+        unsafe {
+            std_env::remove_var("DB_ENDPOINT");
+            std_env::remove_var("DB_NAMESPACE");
+            std_env::remove_var("DB_USERNAME");
+            std_env::remove_var("DB_PASSWORD");
+        }
     }
 
     #[test]

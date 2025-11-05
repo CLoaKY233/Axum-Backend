@@ -114,50 +114,27 @@ pub fn get_bool(key: &str, default: bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    // A mutex to ensure that tests modifying the environment do not run concurrently.
-    static ENV_MUTEX: Mutex<()> = Mutex::new(());
-
-    // Helper to set an environment variable for the duration of a test.
-    // When the returned guard is dropped, the variable is unset.
-    struct EnvVarGuard {
-        key: String,
-    }
-
-    impl Drop for EnvVarGuard {
-        fn drop(&mut self) {
-            // The caller holds ENV_MUTEX while this guard exists, so cleanup is safe.
-            unsafe {
-                std::env::remove_var(&self.key);
-            }
-        }
-    }
-
-    fn set_test_var(key: &str, value: &str) -> EnvVarGuard {
-        // The mutex must be locked before calling this function.
-        unsafe {
-            std::env::set_var(key, value);
-        }
-        EnvVarGuard {
-            key: key.to_string(),
-        }
-    }
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_get_required_success() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        let _guard = set_test_var("TEST_VAR", "test_value");
+        unsafe {
+            std::env::set_var("TEST_VAR", "test_value");
+        }
 
         let result = get_required("TEST_VAR");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "test_value");
+
+        unsafe {
+            std::env::remove_var("TEST_VAR");
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_required_missing() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        // Ensure the variable is not set
         unsafe {
             std::env::remove_var("NONEXISTENT_VAR");
         }
@@ -171,17 +148,23 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_or_default_existing() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        let _guard = set_test_var("TEST_DEFAULT", "actual_value");
+        unsafe {
+            std::env::set_var("TEST_DEFAULT", "actual_value");
+        }
 
         let result = get_or_default("TEST_DEFAULT", "default_value");
         assert_eq!(result, "actual_value");
+
+        unsafe {
+            std::env::remove_var("TEST_DEFAULT");
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_or_default_missing() {
-        let _lock = ENV_MUTEX.lock().unwrap();
         unsafe {
             std::env::remove_var("MISSING_VAR");
         }
@@ -191,19 +174,27 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_get_parsed_success() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        let _guard = set_test_var("TEST_PORT", "8080");
+        unsafe {
+            std::env::set_var("TEST_PORT", "8080");
+        }
 
         let result: Result<u16, EnvironmentError> = get_parsed("TEST_PORT");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 8080);
+
+        unsafe {
+            std::env::remove_var("TEST_PORT");
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_parsed_invalid_type() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        let _guard = set_test_var("TEST_PORT", "invalid");
+        unsafe {
+            std::env::set_var("TEST_PORT", "invalid");
+        }
 
         let result: Result<u16, EnvironmentError> = get_parsed("TEST_PORT");
         assert!(result.is_err());
@@ -211,12 +202,18 @@ mod tests {
             result.unwrap_err(),
             EnvironmentError::Parse { .. }
         ));
+
+        unsafe {
+            std::env::remove_var("TEST_PORT");
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_parsed_or_default() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        let _guard = set_test_var("TEST_NUM", "42");
+        unsafe {
+            std::env::set_var("TEST_NUM", "42");
+        }
         let result: i32 = get_parsed_or_default("TEST_NUM", 100);
         assert_eq!(result, 42);
 
@@ -226,17 +223,24 @@ mod tests {
         let result_missing: i32 = get_parsed_or_default("MISSING_NUM", 100);
         assert_eq!(result_missing, 100);
 
-        let _guard2 = set_test_var("INVALID_NUM", "not-a-number");
+        unsafe {
+            std::env::set_var("INVALID_NUM", "not-a-number");
+        }
         let result_invalid: i32 = get_parsed_or_default("INVALID_NUM", 100);
         assert_eq!(
             result_invalid, 100,
             "Should return default for unparsable value"
         );
+
+        unsafe {
+            std::env::remove_var("TEST_NUM");
+            std::env::remove_var("INVALID_NUM");
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_bool_variations() {
-        let _lock = ENV_MUTEX.lock().unwrap();
         let test_cases = vec![
             ("true", true),
             ("TRUE", true),
@@ -255,34 +259,46 @@ mod tests {
         ];
 
         for (value, expected) in test_cases {
-            let _guard = set_test_var("TEST_BOOL", value);
+            unsafe {
+                std::env::set_var("TEST_BOOL", value);
+            }
             let result = get_bool("TEST_BOOL", false);
             assert_eq!(result, expected, "Failed for value: {value}");
         }
 
-        // Test default
         unsafe {
             std::env::remove_var("MISSING_BOOL");
         }
         let result = get_bool("MISSING_BOOL", true);
         assert!(result);
+
+        unsafe {
+            std::env::remove_var("TEST_BOOL");
+        }
     }
 
     #[test]
+    #[serial]
     fn test_get_bool_invalid_value() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        let _guard = set_test_var("TEST_BOOL", "maybe");
+        unsafe {
+            std::env::set_var("TEST_BOOL", "maybe");
+        }
         let result = get_bool("TEST_BOOL", false);
         assert!(!result); // Should use default
+
+        unsafe {
+            std::env::remove_var("TEST_BOOL");
+        }
     }
 
     #[test]
+    #[serial]
     fn test_multiple_types() {
-        let _lock = ENV_MUTEX.lock().unwrap();
-        // Test different numeric types
-        let _g1 = set_test_var("TEST_U8", "255");
-        let _g2 = set_test_var("TEST_I32", "-42");
-        let _g3 = set_test_var("TEST_F64", "3.15");
+        unsafe {
+            std::env::set_var("TEST_U8", "255");
+            std::env::set_var("TEST_I32", "-42");
+            std::env::set_var("TEST_F64", "3.15");
+        }
 
         let u8_val: u8 = get_parsed("TEST_U8").unwrap();
         let i32_val: i32 = get_parsed("TEST_I32").unwrap();
@@ -291,5 +307,11 @@ mod tests {
         assert_eq!(u8_val, 255);
         assert_eq!(i32_val, -42);
         assert!((f64_val - 3.15).abs() < f64::EPSILON);
+
+        unsafe {
+            std::env::remove_var("TEST_U8");
+            std::env::remove_var("TEST_I32");
+            std::env::remove_var("TEST_F64");
+        }
     }
 }

@@ -1,13 +1,9 @@
 use env::{get_bool, get_or_default, get_parsed, get_parsed_or_default, get_required};
-use std::sync::Mutex;
-
-// A mutex to ensure that tests modifying the environment do not run concurrently.
-static ENV_MUTEX: Mutex<()> = Mutex::new(());
+use serial_test::serial;
 
 #[test]
+#[serial]
 fn test_full_workflow() {
-    let _lock = ENV_MUTEX.lock().unwrap();
-
     unsafe {
         std::env::set_var("APP_NAME", "test_app");
         std::env::set_var("PORT", "3000");

@@ -1,12 +1,12 @@
 use crate::dbs::Database;
 use crate::{
     dbs::{DbConfig, DbConnection, connect},
-    init_tracing,
     sys::config::{server::ServerConfig, state::AppState},
 };
 use axum::Router;
 use err::AppError;
 use hlt::HealthRegistry;
+use log::init_tracing;
 use std::sync::Arc;
 use tokio::time::{Duration, timeout};
 use tower_http::trace::TraceLayer;

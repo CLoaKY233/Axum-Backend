@@ -2,12 +2,14 @@ use super::models::{LogConfig, LogFormat};
 
 impl LogFormat {
     /// Creates a `LogFormat` from the `LOG_FORMAT` environment variable.
+    #[must_use]
     pub fn from_env() -> Self {
         let format_str = env::get_or_default("LOG_FORMAT", "auto");
 
         match format_str.to_lowercase().as_str() {
             "json" => Self::Json,
             "compact" => Self::Compact,
+            "pretty" => Self::Pretty, // ← ADD THIS LINE
             _ => {
                 if cfg!(debug_assertions) {
                     Self::Compact
@@ -21,6 +23,7 @@ impl LogFormat {
 
 impl LogConfig {
     /// Creates a `LogConfig` from environment variables.
+    #[must_use]
     pub fn from_env() -> Self {
         let format = LogFormat::from_env();
 
@@ -40,8 +43,10 @@ impl LogConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_log_format_from_env_json() {
         unsafe {
             std::env::set_var("LOG_FORMAT", "json");
@@ -52,7 +57,9 @@ mod tests {
             std::env::remove_var("LOG_FORMAT");
         }
     }
+
     #[test]
+    #[serial]
     fn test_log_format_from_env_compact() {
         unsafe {
             std::env::set_var("LOG_FORMAT", "compact");
@@ -65,6 +72,20 @@ mod tests {
     }
 
     #[test]
+    #[serial]
+    fn test_log_format_from_env_pretty() {
+        unsafe {
+            std::env::set_var("LOG_FORMAT", "pretty");
+        }
+        let format = LogFormat::from_env();
+        assert_eq!(format, LogFormat::Pretty);
+        unsafe {
+            std::env::remove_var("LOG_FORMAT");
+        }
+    }
+
+    #[test]
+    #[serial]
     fn test_log_format_auto_debug_build() {
         unsafe {
             std::env::remove_var("LOG_FORMAT");
@@ -78,6 +99,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_log_config_from_env() {
         unsafe {
             std::env::set_var("LOG_FORMAT", "json");
