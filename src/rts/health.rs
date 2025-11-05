@@ -46,6 +46,10 @@ mod tests {
 
     #[async_trait::async_trait]
     impl HealthCheck for MockChecker {
+        fn name(&self) -> &'static str {
+            "Mock"
+        }
+
         async fn check(&self) -> ComponentHealth {
             ComponentHealth::builder("Mock")
                 .status(self.status.clone())
