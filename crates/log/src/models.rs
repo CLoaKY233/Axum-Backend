@@ -2,6 +2,7 @@
 pub enum LogFormat {
     Json,
     Compact,
+    Pretty,
 }
 pub struct LogConfig {
     pub format: LogFormat,

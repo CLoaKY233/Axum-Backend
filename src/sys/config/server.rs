@@ -24,8 +24,10 @@ impl ServerConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_server_config_from_env() {
         unsafe {
             std::env::set_var("SERVER_HOST", "127.0.0.1");
@@ -41,6 +43,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_server_config_defaults() {
         unsafe {
             std::env::remove_var("SERVER_HOST");

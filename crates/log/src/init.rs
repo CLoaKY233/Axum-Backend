@@ -1,12 +1,21 @@
-use super::models::{LogConfig, LogFormat};
+use crate::models::{LogConfig, LogFormat};
+use tracing;
 use tracing_subscriber::{EnvFilter, fmt};
-
-/// Initializes the tracing subscriber for logging.
 pub fn init_tracing() {
     let config = LogConfig::from_env();
     let env_filter = EnvFilter::try_new(&config.filter).unwrap_or_else(|_| EnvFilter::new("info"));
 
     match config.format {
+        LogFormat::Pretty => {
+            fmt()
+                .pretty()
+                .with_target(true)
+                .with_line_number(true)
+                .with_env_filter(env_filter)
+                .with_file(true)
+                .with_level(true)
+                .init();
+        }
         LogFormat::Json => {
             fmt()
                 .json()
