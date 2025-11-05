@@ -18,6 +18,10 @@ use std::time::Duration;
 ///
 /// #[async_trait::async_trait]
 /// impl HealthCheck for MyServiceChecker {
+///     fn name(&self) -> &'static str {  // ✅ Add this
+///         "MyService"
+///     }
+///
 ///     async fn check(&self) -> ComponentHealth {
 ///         // Your health check logic here
 ///         ComponentHealth::builder("MyService")
@@ -32,17 +36,16 @@ use std::time::Duration;
 /// ```
 #[async_trait::async_trait]
 pub trait HealthCheck: Send + Sync {
-    /// Performs the health check and returns the component's health status.
+    /// Returns the name of this health check component.
     ///
-    /// This method should perform the actual health verification logic
-    /// (e.g., database ping, HTTP request, file check) and return a
-    /// `ComponentHealth` instance with status, optional message, and latency.
+    /// This name will be used to identify the component in health reports,
+    /// especially when timeouts occur.
+    fn name(&self) -> &str;
+
+    /// Performs the health check and returns the component's health status.
     async fn check(&self) -> ComponentHealth;
 
     /// Returns the timeout duration for this health check.
-    ///
-    /// If the health check takes longer than this duration, it will be
-    /// cancelled and reported as unhealthy by the registry.
     fn timeout(&self) -> Duration;
 }
 
@@ -54,6 +57,10 @@ mod tests {
 
     #[async_trait::async_trait]
     impl HealthCheck for MockHealthy {
+        fn name(&self) -> &'static str {
+            "Mock"
+        }
+
         async fn check(&self) -> ComponentHealth {
             ComponentHealth::healthy("Mock", None::<String>, None)
         }
@@ -67,6 +74,10 @@ mod tests {
 
     #[async_trait::async_trait]
     impl HealthCheck for MockUnhealthy {
+        fn name(&self) -> &'static str {
+            "Mock"
+        }
+
         async fn check(&self) -> ComponentHealth {
             ComponentHealth::unhealthy("Mock", "Test failure", None)
         }
@@ -79,8 +90,8 @@ mod tests {
     #[tokio::test]
     async fn test_health_check_trait_healthy() {
         let checker = MockHealthy;
+        assert_eq!(checker.name(), "Mock");
         let result = checker.check().await;
-
         assert_eq!(result.name, "Mock");
         assert_eq!(result.status, crate::HealthStatus::Healthy);
         assert_eq!(checker.timeout(), Duration::from_secs(5));
@@ -89,8 +100,8 @@ mod tests {
     #[tokio::test]
     async fn test_health_check_trait_unhealthy() {
         let checker = MockUnhealthy;
+        assert_eq!(checker.name(), "Mock");
         let result = checker.check().await;
-
         assert_eq!(result.name, "Mock");
         assert_eq!(result.status, crate::HealthStatus::Unhealthy);
         assert_eq!(result.message, Some("Test failure".to_string()));

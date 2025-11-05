@@ -36,17 +36,19 @@ impl HealthRegistry {
         );
 
         let check_futures = self.checkers.iter().map(|checker| {
+            let component_name = checker.name().to_string();
             let timeout_duration = checker.timeout();
             async move {
                 timeout(timeout_duration, checker.check())
                     .await
                     .unwrap_or_else(|_| {
                         warn!(
+                            component = %component_name,
                             timeout_secs = timeout_duration.as_secs(),
                             "Health check timed out"
                         );
                         ComponentHealth::unhealthy(
-                            "Unknown",
+                            component_name,
                             format!("Health check timed out after {timeout_duration:?}"),
                             None,
                         )
@@ -82,6 +84,7 @@ mod tests {
     use super::*;
     use crate::HealthStatus;
     use std::time::Duration;
+
     struct MockHealthChecker {
         name: String,
         status: HealthStatus,
@@ -90,6 +93,10 @@ mod tests {
 
     #[async_trait::async_trait]
     impl HealthCheck for MockHealthChecker {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
         async fn check(&self) -> ComponentHealth {
             ComponentHealth {
                 name: self.name.clone(),
@@ -214,6 +221,10 @@ mod tests {
 
         #[async_trait::async_trait]
         impl HealthCheck for SlowChecker {
+            fn name(&self) -> &'static str {
+                "SlowDB"
+            }
+
             async fn check(&self) -> ComponentHealth {
                 tokio::time::sleep(Duration::from_secs(10)).await;
                 ComponentHealth::healthy("SlowDB", None::<String>, None)
@@ -233,6 +244,7 @@ mod tests {
         assert_eq!(response.components.len(), 1);
 
         let component = &response.components[0];
+        assert_eq!(component.name, "SlowDB"); // Now correctly identifies the component!
         assert_eq!(component.status, HealthStatus::Unhealthy);
         assert!(component.message.as_ref().unwrap().contains("timed out"));
     }

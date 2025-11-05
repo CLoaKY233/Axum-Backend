@@ -5,6 +5,11 @@ use tracing::{debug, warn};
 
 #[async_trait::async_trait]
 impl HealthCheck for Database {
+    /// Returns the name of this health check component.
+    fn name(&self) -> &'static str {
+        "Database"
+    }
+
     // We cast u128 to u64 here because health check latencies will never exceed
     // u64::MAX milliseconds (~584 million years). This is a safe truncation.
     #[allow(clippy::cast_possible_truncation)]
@@ -43,4 +48,17 @@ impl HealthCheck for Database {
     }
 }
 
-// ADD MOCK DATABASE TESTS LATER IF NEEDED
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Mock test to verify trait implementation compiles
+    #[test]
+    fn test_database_health_check_name() {
+        // This test ensures the Database type implements HealthCheck correctly
+        // We can't easily test without a real database connection, but we can
+        // verify the trait is implemented properly at compile time
+        fn assert_implements_health_check<T: HealthCheck>() {}
+        assert_implements_health_check::<Database>();
+    }
+}
